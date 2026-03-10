@@ -64,3 +64,5 @@ temp/
 
 # Local images commonly produced during experiments
 image*.png
+
+.archive
