@@ -1,0 +1,66 @@
+# Repo-local instructions and legacy reference material
+AGENTS.md
+old/
+
+# Python bytecode and caches
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Build and packaging artifacts
+.Python
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+share/python-wheels/
+*.egg-info/
+*.egg
+.installed.cfg
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+system180-env/
+
+# Test, type-check, and coverage caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# IDE/editor metadata
+.idea/
+.vscode/
+
+# Local databases and runtime state
+*.db
+*.sqlite3
+db.sqlite3
+config/center_roi.json
+
+# Generated models and large binary artifacts
+*.engine
+*.onnx
+
+# Generated media and dataset folders
+recordings/
+screenshots/
+uploads/
+static/detected_images/
+data/
+temp/
+
+# Local images commonly produced during experiments
+image*.png
