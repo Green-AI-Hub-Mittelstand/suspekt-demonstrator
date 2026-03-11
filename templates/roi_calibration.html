@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <title>ROI auswählen – System180</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f0f0f0;
+            color: #1f2933;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background-color: #ffffff;
+            padding: 18px 28px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.4rem;
+        }
+        .back-link {
+            padding: 10px 16px;
+            border-radius: 8px;
+            background-color: #0b7dda;
+            color: #ffffff;
+            text-decoration: none;
+            transition: background-color 0.2s ease;
+        }
+        .back-link:hover {
+            background-color: #095c9c;
+        }
+        main {
+            flex: 1;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            align-items: center;
+        }
+        .canvas-card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            max-width: 960px;
+            width: 100%;
+        }
+        .canvas-card h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+        }
+        .stream-container {
+            position: relative;
+            width: 100%;
+            background-color: #111;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .stream-container img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        #roi-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .roi-box {
+            position: absolute;
+            border: 2px solid rgba(255, 215, 0, 0.9);
+            background-color: rgba(255, 215, 0, 0.12);
+            display: none;
+        }
+        .roi-box.current {
+            border-color: rgba(11, 125, 218, 0.95);
+            background-color: rgba(11, 125, 218, 0.14);
+        }
+        .roi-box.selection {
+            border-style: dashed;
+        }
+        #roi-interaction {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: auto;
+            cursor: crosshair;
+        }
+        .legend {
+            margin-top: 12px;
+            font-size: 0.95rem;
+            color: #3d4a57;
+        }
+        .legend p {
+            margin: 6px 0;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .controls button {
+            padding: 12px 18px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s ease, opacity 0.2s ease;
+        }
+        .controls button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        #save-roi {
+            background-color: #0b7dda;
+            color: #ffffff;
+        }
+        #save-roi:hover:not(:disabled) {
+            background-color: #095c9c;
+        }
+        #clear-selection {
+            background-color: #e1e7ef;
+            color: #1f2933;
+        }
+        #clear-selection:hover:not(:disabled) {
+            background-color: #c8d6e5;
+        }
+        #reset-roi {
+            background-color: #e05050;
+            color: #ffffff;
+        }
+        #reset-roi:hover:not(:disabled) {
+            background-color: #c33c3c;
+        }
+        #status-message {
+            min-height: 24px;
+            font-weight: 600;
+        }
+        #status-message.status-success {
+            color: #1f7a3d;
+        }
+        #status-message.status-error {
+            color: #b3261e;
+        }
+        #status-message.status-info {
+            color: #0b7dda;
+        }
+        .roi-values {
+            margin-top: 10px;
+            font-size: 0.95rem;
+            color: #1f2933;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Region of Interest festlegen</h1>
+        <a class="back-link" href="/">Zurück zur Übersicht</a>
+    </header>
+    <main>
+        <div class="canvas-card">
+            <h2>Center-Kamera</h2>
+            <div class="stream-container" id="stream-container">
+                <img id="center-stream" src="{{ center_stream_src | default('/video_center') }}" alt="Center Stream" />
+                <div id="roi-overlay">
+                    <div id="roi-current" class="roi-box current"></div>
+                    <div id="roi-selection" class="roi-box selection"></div>
+                    <div id="roi-interaction"></div>
+                </div>
+            </div>
+            <div class="legend">
+                <p>1. Klicke und ziehe auf dem Bild, um zwei gegenüberliegende Eckpunkte der ROI auszuwählen.</p>
+                <p>2. Speichere die Auswahl, um sie sofort im Gamification-Stream zu übernehmen.</p>
+                <p>Bestehende ROI ist blau markiert, neue Auswahl erscheint gelb (gestrichelt).</p>
+            </div>
+            <div class="roi-values">
+                <div>Aktuelle ROI: <span id="current-roi-label">-</span></div>
+                <div>Auswahl: <span id="selection-roi-label">-</span></div>
+            </div>
+        </div>
+        <div class="controls">
+            <button id="save-roi" disabled>ROI übernehmen</button>
+            <button id="clear-selection" disabled>Auswahl löschen</button>
+            <button id="reset-roi">ROI zurücksetzen</button>
+        </div>
+        <div id="status-message" class="status-info"></div>
+    </main>
+    <script>
+        const streamImg = document.getElementById("center-stream");
+        const roiOverlay = document.getElementById("roi-overlay");
+        const roiCurrent = document.getElementById("roi-current");
+        const roiSelection = document.getElementById("roi-selection");
+        const interactionLayer = document.getElementById("roi-interaction");
+        const saveBtn = document.getElementById("save-roi");
+        const clearBtn = document.getElementById("clear-selection");
+        const resetBtn = document.getElementById("reset-roi");
+        const statusMsg = document.getElementById("status-message");
+        const currentRoiLabel = document.getElementById("current-roi-label");
+        const selectionRoiLabel = document.getElementById("selection-roi-label");
+
+        let drawing = false;
+        let startPoint = null;
+        let pendingROI = null;
+        let currentROI = null;
+        const authRequired = {{ 'true' if auth_required else 'false' }};
+        let isAdmin = {{ 'true' if is_admin else 'false' }};
+
+        function clamp01(value) {
+            if (value < 0) return 0;
+            if (value > 1) return 1;
+            return value;
+        }
+
+        function roiToString(roi) {
+            if (!roi) {
+                return "-";
+            }
+            return roi.map((v) => v.toFixed(3)).join(" , ");
+        }
+
+        function applyBox(element, roi) {
+            if (!roi) {
+                element.style.display = "none";
+                return;
+            }
+            const [x1, y1, x2, y2] = roi;
+            element.style.display = "block";
+            element.style.left = `${x1 * 100}%`;
+            element.style.top = `${y1 * 100}%`;
+            element.style.width = `${(x2 - x1) * 100}%`;
+            element.style.height = `${(y2 - y1) * 100}%`;
+        }
+
+        function showStatus(message, variant = "info", timeoutMs = 3000) {
+            statusMsg.textContent = message || "";
+            statusMsg.classList.remove("status-success", "status-error", "status-info");
+            statusMsg.classList.add(`status-${variant}`);
+            if (timeoutMs > 0) {
+                window.setTimeout(() => {
+                    if (statusMsg.textContent === message) {
+                        statusMsg.textContent = "";
+                        statusMsg.classList.remove("status-success", "status-error", "status-info");
+                    }
+                }, timeoutMs);
+            }
+        }
+
+        function updateButtons() {
+            const hasSelection = !!pendingROI;
+            saveBtn.disabled = !isAdmin || !hasSelection;
+            clearBtn.disabled = !hasSelection;
+        }
+
+        function disableInteractions() {
+            interactionLayer.style.pointerEvents = "none";
+            saveBtn.disabled = true;
+            clearBtn.disabled = true;
+            resetBtn.disabled = true;
+            clearSelection();
+        }
+
+        function enableInteractions() {
+            interactionLayer.style.pointerEvents = "auto";
+            resetBtn.disabled = false;
+            updateButtons();
+        }
+
+        function getRelativePoint(evt) {
+            const rect = interactionLayer.getBoundingClientRect();
+            const x = clamp01((evt.clientX - rect.left) / rect.width);
+            const y = clamp01((evt.clientY - rect.top) / rect.height);
+            return { x, y };
+        }
+
+        function normalizeRectangle(p1, p2) {
+            const x1 = Math.min(p1.x, p2.x);
+            const y1 = Math.min(p1.y, p2.y);
+            const x2 = Math.max(p1.x, p2.x);
+            const y2 = Math.max(p1.y, p2.y);
+            if (x2 - x1 < 0.005 || y2 - y1 < 0.005) {
+                return null;
+            }
+            return [x1, y1, x2, y2];
+        }
+
+        function clearSelection() {
+            pendingROI = null;
+            startPoint = null;
+            applyBox(roiSelection, null);
+            selectionRoiLabel.textContent = "-";
+            updateButtons();
+        }
+
+        async function fetchCurrentROI() {
+            if (!isAdmin) {
+                disableInteractions();
+                return;
+            }
+            try {
+                const response = await fetch("/roi/config");
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                currentROI = Array.isArray(data.roi) ? data.roi : null;
+                applyBox(roiCurrent, currentROI);
+                currentRoiLabel.textContent = roiToString(currentROI);
+                enableInteractions();
+                showStatus("Aktuelle ROI geladen.", "info", 2000);
+            } catch (err) {
+                const message = err && err.message ? err.message : String(err);
+                if (message.includes("401")) {
+                    isAdmin = false;
+                    disableInteractions();
+                    showStatus("Keine Berechtigung. Bitte als Admin im Hauptfenster einloggen.", "error", 0);
+                } else {
+                    showStatus(`ROI konnte nicht geladen werden: ${message}`, "error", 0);
+                }
+            }
+        }
+
+        function syncOverlaySize() {
+            const width = streamImg.clientWidth;
+            const height = streamImg.clientHeight;
+            roiOverlay.style.width = `${width}px`;
+            roiOverlay.style.height = `${height}px`;
+        }
+
+        async function saveROI() {
+            if (!isAdmin) {
+                showStatus("Keine Berechtigung zum Speichern der ROI.", "error", 0);
+                return;
+            }
+            if (!pendingROI) {
+                return;
+            }
+            try {
+                saveBtn.disabled = true;
+                const response = await fetch("/roi/config", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ roi: pendingROI })
+                });
+                if (!response.ok) {
+                    let detail = `HTTP ${response.status}`;
+                    try {
+                        const errData = await response.json();
+                        if (errData && errData.detail) {
+                            detail = errData.detail;
+                        }
+                    } catch {
+                        /* ignore */
+                    }
+                    throw new Error(detail);
+                }
+                const data = await response.json();
+                currentROI = Array.isArray(data.roi) ? data.roi : null;
+                applyBox(roiCurrent, currentROI);
+                currentRoiLabel.textContent = roiToString(currentROI);
+                clearSelection();
+                enableInteractions();
+                showStatus("ROI gespeichert.", "success");
+            } catch (err) {
+                const message = err && err.message ? err.message : String(err);
+                showStatus(`Speichern fehlgeschlagen: ${message}`, "error", 0);
+                if (message.includes("401") || message.includes("Admin")) {
+                    isAdmin = false;
+                    disableInteractions();
+                }
+            } finally {
+                saveBtn.disabled = false;
+            }
+        }
+
+        async function resetROI() {
+            if (!isAdmin) {
+                showStatus("Keine Berechtigung zum Zurücksetzen der ROI.", "error", 0);
+                return;
+            }
+            try {
+                resetBtn.disabled = true;
+                const response = await fetch("/roi/reset", { method: "POST" });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                currentROI = null;
+                applyBox(roiCurrent, null);
+                currentRoiLabel.textContent = "-";
+                clearSelection();
+                enableInteractions();
+                showStatus("ROI zurückgesetzt.", "success");
+            } catch (err) {
+                const message = err && err.message ? err.message : String(err);
+                showStatus(`Zurücksetzen fehlgeschlagen: ${message}`, "error", 0);
+                if (message.includes("401") || message.includes("Admin")) {
+                    isAdmin = false;
+                    disableInteractions();
+                }
+            } finally {
+                resetBtn.disabled = false;
+            }
+        }
+
+        interactionLayer.addEventListener("mousedown", (event) => {
+            event.preventDefault();
+            drawing = true;
+            startPoint = getRelativePoint(event);
+            applyBox(roiSelection, [startPoint.x, startPoint.y, startPoint.x, startPoint.y]);
+        });
+
+        interactionLayer.addEventListener("mousemove", (event) => {
+            if (!drawing || !startPoint) {
+                return;
+            }
+            const current = getRelativePoint(event);
+            const roi = [
+                Math.min(startPoint.x, current.x),
+                Math.min(startPoint.y, current.y),
+                Math.max(startPoint.x, current.x),
+                Math.max(startPoint.y, current.y)
+            ];
+            applyBox(roiSelection, roi);
+            selectionRoiLabel.textContent = roiToString(roi);
+        });
+
+        function finishDrawing(event) {
+            if (!drawing || !startPoint) {
+                return;
+            }
+            drawing = false;
+            const endPoint = getRelativePoint(event);
+            const roi = normalizeRectangle(startPoint, endPoint);
+            if (!roi) {
+                clearSelection();
+                showStatus("Auswahl zu klein – bitte größer ziehen.", "error", 2500);
+                return;
+            }
+            pendingROI = roi;
+            applyBox(roiSelection, roi);
+            selectionRoiLabel.textContent = roiToString(roi);
+            updateButtons();
+            showStatus("Auswahl bereit. Speichere zum Übernehmen.", "info", 2500);
+        }
+
+        interactionLayer.addEventListener("mouseup", finishDrawing);
+        interactionLayer.addEventListener("mouseleave", (event) => {
+            if (drawing) {
+                finishDrawing(event);
+            }
+        });
+
+        saveBtn.addEventListener("click", saveROI);
+        clearBtn.addEventListener("click", clearSelection);
+        resetBtn.addEventListener("click", resetROI);
+
+        window.addEventListener("resize", syncOverlaySize);
+        streamImg.addEventListener("load", syncOverlaySize);
+
+        disableInteractions();
+
+        async function initializeROIPage() {
+            if (!authRequired) {
+                isAdmin = true;
+                enableInteractions();
+                await fetchCurrentROI();
+                return;
+            }
+            try {
+                const response = await fetch("/auth/status");
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                isAdmin = !!data.is_admin;
+                if (isAdmin) {
+                    enableInteractions();
+                    await fetchCurrentROI();
+                } else {
+                    disableInteractions();
+                    currentROI = null;
+                    applyBox(roiCurrent, null);
+                    currentRoiLabel.textContent = "-";
+                    showStatus("Bitte als Admin im Hauptfenster einloggen, um die ROI zu bearbeiten.", "error", 0);
+                }
+            } catch (err) {
+                isAdmin = false;
+                disableInteractions();
+                currentROI = null;
+                applyBox(roiCurrent, null);
+                currentRoiLabel.textContent = "-";
+                showStatus(`Statusabfrage fehlgeschlagen: ${err.message || err}`, "error", 0);
+            }
+        }
+
+        syncOverlaySize();
+        initializeROIPage();
+    </script>
+</body>
+</html>

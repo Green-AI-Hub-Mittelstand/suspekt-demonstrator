@@ -1,0 +1,2285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>DFKI x System 180 Demonstrator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            font-size: 18px;
+        }
+        body {
+            color: #1f2933;
+            font-size: 1.1rem;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 280px;
+            background-color: #ffffff;
+            box-shadow: 2px 0 6px rgba(0, 0, 0, 0.08);
+            padding: 28px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .sidebar h2 {
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #0b7dda;
+        }
+        .mode-buttons,
+        .sidebar-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .mode-option .mode-button {
+            flex: 1;
+        }
+        .mode-button {
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(11, 125, 218, 0.4);
+            background: #ffffff;
+            cursor: pointer;
+            font-size: 1rem;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+        .mode-button:hover {
+            background: rgba(11, 125, 218, 0.08);
+        }
+        .mode-button.active {
+            background: #0b7dda;
+            color: #ffffff;
+            border-color: #0b7dda;
+            box-shadow: 0 4px 12px rgba(11, 125, 218, 0.35);
+        }
+        .mode-button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        .info-button {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid rgba(11, 125, 218, 0.4);
+            background: #f0f6ff;
+            color: #0b7dda;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .info-button:hover {
+            background: rgba(11, 125, 218, 0.12);
+            color: #074a7d;
+        }
+        .sidebar-controls {
+            margin-top: 8px;
+        }
+        .sidebar-controls button {
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(11, 125, 218, 0.4);
+            background: #0b7dda;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s ease;
+        }
+        .sidebar-controls button:hover:not(:disabled) {
+            background: #095c9c;
+        }
+        .sidebar-controls button:disabled {
+            background: #aac7de;
+            cursor: not-allowed;
+        }
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 28px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .logo-header {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+        .logo-header img {
+            height: 56px;
+            max-width: 180px;
+            object-fit: contain;
+        }
+        .toolbar-actions button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: #0b7dda;
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .toolbar-actions button:disabled {
+            background-color: #aac7de;
+            cursor: not-allowed;
+        }
+        .toolbar-actions button:hover:not(:disabled) {
+            background-color: #095c9c;
+        }
+        .toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .admin-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .login-dropdown {
+            position: relative;
+        }
+        .login-trigger {
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: none;
+            background-color: #0b7dda;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background-color 0.2s ease;
+        }
+        .login-trigger:hover:not(:disabled) {
+            background-color: #095c9c;
+        }
+        .login-form {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #ffffff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+            min-width: 240px;
+            z-index: 20;
+        }
+        .login-form.hidden {
+            display: none;
+        }
+        .login-form input {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(11, 125, 218, 0.35);
+            font-size: 0.95rem;
+        }
+        .login-form .login-submit {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            background-color: #0b7dda;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background-color 0.2s ease;
+        }
+        .login-form .login-submit:hover:not(:disabled) {
+            background-color: #095c9c;
+        }
+        .toolbar-actions .toolbar-link-button {
+            padding: 12px 20px;
+            border-radius: 8px;
+            background-color: #224f6d;
+            color: #ffffff;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+        }
+        .toolbar-actions .toolbar-link-button:hover {
+            background-color: #16364c;
+        }
+        #camera-status-banner {
+            min-width: 220px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background-color: #eef3fb;
+            color: #1f2933;
+            font-weight: 600;
+            font-size: 0.95rem;
+            box-shadow: inset 0 0 0 1px rgba(11, 125, 218, 0.15);
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        #camera-status-banner.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #camera-status-banner.status-busy {
+            background-color: #fff4d6;
+            color: #8a6100;
+            box-shadow: inset 0 0 0 1px rgba(188, 142, 37, 0.35);
+        }
+        #camera-status-banner.status-success {
+            background-color: #d7f5dd;
+            color: #1f7a3d;
+            box-shadow: inset 0 0 0 1px rgba(47, 148, 86, 0.3);
+        }
+        #camera-status-banner.status-error {
+            background-color: #f9d4d4;
+            color: #a11f1f;
+            box-shadow: inset 0 0 0 1px rgba(192, 70, 70, 0.35);
+        }
+        .logged-in-panel {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: #ffffff;
+            padding: 6px 10px;
+            border-radius: 8px;
+            box-shadow: inset 0 0 0 1px rgba(11, 125, 218, 0.15);
+        }
+        .logged-in-panel span {
+            font-weight: 600;
+            color: #0b7dda;
+        }
+        .logged-in-panel button {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: none;
+            background-color: #e05050;
+            color: #ffffff;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .logged-in-panel button:hover:not(:disabled) {
+            background-color: #c33c3c;
+        }
+        .camera-wrapper {
+            padding: 24px 32px 12px;
+        }
+        .camera-wrapper .container {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 20px;
+            justify-content: space-between;
+        }
+        .camera-panel {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            flex: 1 1 30%;
+            min-width: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+        .camera-panel.side-camera {
+            flex: 0 1 22%;
+        }
+        .camera-panel.center-camera {
+            flex: 0 1 56%;
+        }
+        .camera-panel h2 {
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            text-align: center;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 8px;
+            width: 100%;
+        }
+        .camera-panel img {
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            width: 100%;
+            height: auto;
+            image-rendering: auto;
+        }
+        .camera-panel.center-camera img {
+            aspect-ratio: auto;
+            object-fit: contain;
+            background-color: transparent;
+        }
+        .camera-feedback {
+            padding: 0 32px 24px;
+            display: flex;
+            width: 100%;
+        }
+        .feedback-box {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            padding: 16px 20px;
+            width: 100%;
+            min-height: 90px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: background-color 0.2s ease;
+        }
+        .feedback-box .feedback-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #0b7dda;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .feedback-box .feedback-text {
+            font-size: 1.75rem;
+            line-height: 1.35;
+            color: #083a6c;
+            font-weight: 700;
+        }
+        .feedback-box .feedback-detail {
+            font-size: 1.3rem;
+            color: #1f2933;
+        }
+        .feedback-box.warn {
+            background-color: #fff4d6;
+        }
+        .feedback-box.warn .feedback-text {
+            color: #8a6100;
+        }
+        .feedback-box.info {
+            background-color: #eef3fb;
+        }
+        .feedback-box.info .feedback-text {
+            color: #1f2933;
+        }
+        @media (max-width: 1100px) {
+            .camera-wrapper .container {
+                flex-direction: column;
+                gap: 16px;
+                flex-wrap: nowrap;
+            }
+            .camera-panel {
+                width: 100%;
+            }
+            .camera-panel.side-camera,
+            .camera-panel.center-camera {
+                flex: 1 1 100%;
+            }
+        }
+        .game-panel {
+            background-color: #ffffff;
+            margin: 0 32px 30px 32px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .game-body {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            align-items: stretch;
+        }
+        .game-status {
+            flex: 2 1 420px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            align-content: start;
+        }
+        .leaderboard {
+            flex: 1 1 240px;
+            background-color: #f7faff;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: inset 0 0 0 1px rgba(11, 125, 218, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-self: stretch;
+        }
+        .leaderboard h3 {
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .leaderboard ol {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 0;
+            padding: 0;
+        }
+        .leaderboard li {
+            background-color: #ffffff;
+            border-radius: 6px;
+            padding: 10px 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+        }
+        .leaderboard li::before {
+            content: attr(data-rank) ".";
+            font-weight: 600;
+            margin-right: 10px;
+            color: #0b7dda;
+        }
+        .leaderboard li .name { flex: 1; }
+        .leaderboard li .score { font-weight: 600; }
+        .leaderboard li.me {
+            border: 1px solid rgba(58, 165, 93, 0.6);
+            background-color: #f1faf3;
+        }
+        .leaderboard li.me::before { color: #3aa55d; }
+        .leaderboard li.extra {
+            opacity: 0.75;
+            font-size: 0.9rem;
+        }
+        .status-card {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            padding: 12px 16px;
+            background-color: #f7f9fc;
+            border-radius: 8px;
+        }
+        #mission-card {
+            grid-column: span 2;
+            min-height: 140px;
+            background: linear-gradient(120deg, rgba(11, 125, 218, 0.12), rgba(11, 125, 218, 0.28));
+            border: 1px solid rgba(11, 125, 218, 0.3);
+            box-shadow: 0 6px 16px rgba(11, 125, 218, 0.15);
+        }
+        .status-card .label {
+            font-size: 0.78rem;
+            color: #5b6b7f;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        #mission-card .label {
+            font-size: 1rem;
+            color: #06355f;
+            letter-spacing: 0.08em;
+        }
+        .status-card .value {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .status-card .value.highlight {
+            font-size: 1.3rem;
+        }
+        #mission-card .value {
+            color: #052441;
+            word-break: break-word;
+            line-height: 1.15;
+        }
+        #mission-card .value.highlight {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        .status-card.message {
+            grid-column: 1 / -1;
+            background-color: #f5f8fb;
+            border-left: 4px solid #0b7dda;
+            padding: 12px 16px;
+            border-radius: 6px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+        .status-card.message.success {
+            border-left-color: #3aa55d;
+            background-color: #f1faf3;
+        }
+        .status-card.message.warn {
+            border-left-color: #f39c12;
+            background-color: #fff8e6;
+        }
+        .instruction-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.25s ease;
+        }
+        .instruction-modal.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .instruction-content {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 40px 52px;
+            max-width: 720px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+            font-size: 1.35rem;
+            text-align: center;
+            line-height: 1.6;
+            position: relative;
+        }
+        .instruction-modal.inventory-popup .instruction-content {
+            max-width: 860px;
+            padding: 48px 64px;
+            gap: 28px;
+        }
+        .instruction-modal.inventory-popup #instruction-text {
+            font-size: 1.8rem;
+            line-height: 1.7;
+        }
+        .modal-close-button {
+            position: absolute;
+            top: 18px;
+            right: 24px;
+            border: none;
+            background: transparent;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2f3a4d;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+        .modal-close-button:hover {
+            color: #0b7dda;
+        }
+        .instruction-content p,
+        .instruction-content li {
+            font-size: 1.3rem;
+            line-height: 1.6;
+        }
+        .instruction-content ol {
+            gap: 10px;
+        }
+        .inventory-panel {
+            flex: 1 1 300px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: inset 0 0 0 1px rgba(11, 125, 218, 0.15);
+            display: none;
+            flex-direction: column;
+            gap: 14px;
+            align-self: stretch;
+        }
+        .inventory-panel.active {
+            display: flex;
+        }
+        .inventory-panel h3 {
+            font-size: 1.05rem;
+            border-bottom: 1px solid #e5e9f2;
+            padding-bottom: 6px;
+        }
+        .inventory-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+        .inventory-header,
+        .inventory-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .inventory-header .row-label,
+        .inventory-row .row-label {
+            width: 130px;
+            font-weight: 600;
+        }
+        .inventory-header .row-label {
+            color: #0b7dda;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.04em;
+        }
+        .inventory-cells {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            flex: 1;
+        }
+        .inventory-column-label {
+            text-align: center;
+            font-weight: 600;
+            color: #0b7dda;
+            padding: 8px 0;
+        }
+        .inventory-cell {
+            background: #eef3fb;
+            border-radius: 8px;
+            padding: 12px 0;
+            text-align: center;
+            font-weight: 600;
+            color: #1f2933;
+            transition: all 0.2s ease;
+            min-height: 44px;
+        }
+        .inventory-cell.active {
+            background: #0b7dda;
+            color: #ffffff;
+            box-shadow: 0 6px 12px rgba(11, 125, 218, 0.3);
+        }
+        .inventory-footer {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #0b7dda;
+        }
+        .inventory-box-note {
+            margin: 12px 0 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #0b7dda;
+            text-align: center;
+        }
+        @keyframes shelfPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 rgba(11, 125, 218, 0.0); }
+            50% { transform: scale(1.05); box-shadow: 0 0 12px rgba(11, 125, 218, 0.5); }
+            100% { transform: scale(1); box-shadow: 0 0 0 rgba(11, 125, 218, 0.0); }
+        }
+        .instruction-grid-wrapper {
+            margin-top: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .instruction-grid-wrapper.hidden {
+            display: none;
+        }
+        .instruction-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 60px);
+            gap: 8px;
+            justify-content: center;
+        }
+        .instruction-modal.inventory-popup .instruction-grid {
+            grid-template-columns: repeat(4, 80px);
+            gap: 12px;
+        }
+        .instruction-grid-row {
+            display: contents;
+        }
+        .instruction-grid-cell {
+            background: #eef3fb;
+            border-radius: 8px;
+            padding: 10px 0;
+            font-weight: 600;
+            color: #1f2933;
+            border: 2px solid transparent;
+            transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+        .instruction-modal.inventory-popup .instruction-grid-cell {
+            padding: 14px 0;
+            font-size: 1.4rem;
+        }
+        .instruction-grid-cell.active {
+            background: #0b7dda;
+            color: #ffffff;
+            border-color: #0b7dda;
+            animation: shelfPulse 1.4s ease-in-out infinite;
+        }
+        .instruction-grid-wrapper.box-mode .instruction-grid {
+            display: none;
+        }
+        .instruction-grid-note {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0b7dda;
+        }
+        .instruction-modal.inventory-popup .instruction-grid-note {
+            font-size: 1.2rem;
+        }
+        .mode-instructions {
+            background: #eef3fb;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 18px 0;
+            color: #1f2933;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+        .mode-instructions.hidden {
+            display: none;
+        }
+        .mode-instructions h3 {
+            margin: 0 0 8px;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+        .mode-instructions ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .mode-instructions li {
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+        .part-info-modal .instruction-content {
+            max-width: 1180px;
+            padding: 44px 60px;
+        }
+        .part-info-modal .instruction-content h3 {
+            font-size: 1.7rem;
+            margin-bottom: 22px;
+        }
+        .part-info-modal .video-wrapper {
+            margin-top: 24px;
+        }
+        .part-info-buttons {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+        .part-info-button {
+            flex: 1 1 calc(20% - 16px);
+            min-width: 200px;
+            padding: 18px 24px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-radius: 16px;
+            border: 2px solid #0b7dda;
+            background: #ffffff;
+            color: #0b7dda;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            text-align: center;
+        }
+        .part-info-button:hover,
+        .part-info-button.active {
+            background: #0b7dda;
+            color: #ffffff;
+            box-shadow: 0 8px 16px rgba(11, 125, 218, 0.3);
+        }
+        .part-info-modal video {
+            width: 100%;
+            max-height: 540px;
+            border-radius: 16px;
+            background: #000;
+        }
+        .part-info-modal .video-placeholder {
+            width: 100%;
+            height: 320px;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        .mission-popup {
+            z-index: 1100;
+        }
+        .mission-popup .instruction-content {
+            max-width: 860px;
+            text-align: center;
+            padding: 48px 64px;
+            gap: 28px;
+        }
+        .mission-popup .instruction-content p {
+            font-size: 1.8rem;
+            line-height: 1.7;
+        }
+        .mission-popup.info .instruction-content {
+            border-left: 6px solid #0b7dda;
+        }
+        .mission-popup.success .instruction-content {
+            border-left: 6px solid #3aa55d;
+        }
+        .mission-popup.warn .instruction-content {
+            border-left: 6px solid #d37c12;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <h2>Hier Spielmodi wählen</h2>
+            <div class="mode-buttons">
+                <div class="mode-option">
+                    <button class="mode-button active" data-mode="missions">Finde gesuchtes Bauteil</button>
+                    <button class="info-button" type="button" data-info="missions" aria-label="Information Finde das richtige Bauteil">i</button>
+                </div>
+                <div class="mode-option">
+                    <button class="mode-button" data-mode="inventory">Lagere Bauteile ein</button>
+                    <button class="info-button" type="button" data-info="inventory" aria-label="Information Lagersortierung">i</button>
+                </div>
+            </div>
+            <div class="mode-instructions hidden" id="mode-instructions">
+                <h3 id="instruction-heading">Spielablauf</h3>
+                <ol id="instruction-steps">
+                    <li>Demonstrator nennt zufällig Bauteil. Suche es in der Schublade (links).</li>
+                    <li>Lege dein Bauteil in den Demonstrator. Er sagt dir, ob es korrekt ist.</li>
+                    <li>Gewonnen hast du bei 5 richtigen Bauteilen.</li>
+                </ol>
+            </div>
+            <div class="sidebar-controls">
+                <button id="start-game-btn">Spiel starten</button>
+                <button id="next-mission-btn">Nächstes Bauteil</button>
+                <button id="reset-game-btn">Spiel beenden</button>
+            </div>
+        </aside>
+        <div class="content">
+            <div class="toolbar">
+                <div class="logo-header">
+                    <img src="/static/system-180-logo.jpg" alt="System 180 Logo">
+                    <img src="/static/green-ai-hub-mittelstand.svg" alt="Green AI Hub Logo">
+                    <img src="/static/dfki_Logo_vz-1024x292.png" alt="DFKI Logo">
+                </div>
+                <div class="toolbar-actions">
+                    <div id="admin-controls" class="admin-controls hidden">
+                        <button id="recalibrate-btn">ArUco neu kalibrieren</button>
+                        <button id="restart-cameras-btn">Kameras neu starten</button>
+                        <a class="toolbar-link-button" href="/roi">ROI einstellen</a>
+                        <span id="camera-status-banner"></span>
+                    </div>
+                    <button type="button" id="part-info-btn" class="toolbar-link-button">Bauteilbeschreibung</button>
+                    <div class="login-dropdown">
+                        <button type="button" id="login-toggle" class="login-trigger">Login</button>
+                        <form id="login-form" class="login-form hidden" autocomplete="off">
+                            <input type="text" id="login-username" name="username" placeholder="Benutzername" value="admin" autocomplete="username" />
+                            <input type="password" id="login-password" name="password" placeholder="Passwort" autocomplete="current-password" />
+                            <button type="submit" id="login-btn" class="login-submit">Anmelden</button>
+                        </form>
+                    </div>
+                    <div id="logged-in-panel" class="logged-in-panel hidden">
+                        <span id="logged-in-user">Admin</span>
+                        <button type="button" id="logout-btn">Logout</button>
+                    </div>
+                </div>
+            </div>
+            <div class="camera-wrapper">
+                <div class="container">
+                    <div class="camera-panel side-camera">
+                        <h5>OAK-1 Max (Links)</h5>
+                        <img class="camera-stream" data-stream-src="/video_left" src="/video_left" alt="Left OAK-1 Max Stream" />
+                    </div>
+                    <div class="camera-panel center-camera">
+                        <h5>Draufsicht (Aruco-Marker Messung)</h5>
+                        <img class="camera-stream" data-stream-src="/video_center" src="/video_center" alt="Center USB Webcam Stream" />
+                    </div>
+                    <div class="camera-panel side-camera">
+                        <h5>OAK-1 Max (Rechts)</h5>
+                        <img class="camera-stream" data-stream-src="/video_right" src="/video_right" alt="Right OAK-1 Max Stream" />
+                    </div>
+                </div>
+            </div>
+            <div class="camera-feedback">
+                <div class="feedback-box info" id="detection-feedback">
+                    <span class="feedback-label">Erkennung</span>
+                    <span class="feedback-text" id="detection-feedback-text">-</span>
+                    <span class="feedback-detail" id="instruction-feedback-text">Halte das Bauteil in die Kamera.</span>
+                </div>
+            </div>
+            <div class="game-panel">
+                <div class="game-body">
+                    <div class="game-status">
+                        <div class="status-card" id="mission-card">
+                            <span class="label">Nächstes Bauteil</span>
+                            <span class="value highlight" id="mission-value">Bitte Spiel auswählen.</span>
+                        </div>
+                        <div class="status-card" id="round-card">
+                            <span class="label" id="round-label">Gefundene Bauteile</span>
+                            <span class="value highlight" id="round-progress-value">0 / 5</span>
+                        </div>
+                        <div class="status-card" id="status-card">
+                            <span class="label">Status</span>
+                            <span class="value" id="status-value">Bereit</span>
+                        </div>
+                        <div class="status-card" id="score-track-card">
+                            <span class="label" id="score-track-label">Siege / Niederlagen</span>
+                            <span class="value" id="score-track-value">0 / 0</span>
+                        </div>
+                        <div class="status-card" id="time-card">
+                            <span class="label">Zeit</span>
+                            <span class="value highlight" id="time-value">0.0 s</span>
+                        </div>
+                        <div class="status-card" id="score-card">
+                            <span class="label">Punkte</span>
+                            <span class="value highlight" id="score-value">0</span>
+                        </div>
+                        <div class="status-card" id="streak-card">
+                            <span class="label">Serie / Best</span>
+                            <span class="value" id="streak-value">0 / 0</span>
+                        </div>
+                        <div class="status-card" id="attempt-card">
+                            <span class="label">Versuche (gesamt)</span>
+                            <span class="value" id="attempt-value">0</span>
+                        </div>
+                        <div class="status-card" id="last-detected-card">
+                            <span class="label">Letztes erkanntes Teil</span>
+                            <span class="value" id="last-detected-value">-</span>
+                        </div>
+                    </div>
+                    <div id="inventory-panel" class="inventory-panel">
+                        <h3>Lagerübersicht</h3>
+                        <div class="inventory-grid">
+                            <div class="inventory-header">
+                                <span class="row-label">Länge</span>
+                                <div class="inventory-cells">
+                                    <span class="inventory-column-label" data-col="1">Geraden</span>
+                                    <span class="inventory-column-label" data-col="2">Diagonalen</span>
+                                    <span class="inventory-column-label" data-col="3">Mutternstäbe</span>
+                                    <span class="inventory-column-label" data-col="4">Versetzte Geraden</span>
+                                </div>
+                            </div>
+                            <div class="inventory-row" data-row-index="1" data-length-label="ca. 250 mm">
+                                <span class="row-label">ca. 250 mm</span>
+                                <div class="inventory-cells">
+                                    <div class="inventory-cell" data-row="1" data-col="1" aria-label="ca. 250 mm - Geraden">&nbsp;</div>
+                                    <div class="inventory-cell" data-row="1" data-col="2" aria-label="ca. 250 mm - Diagonalen">&nbsp;</div>
+                                    <div class="inventory-cell" data-row="1" data-col="3" aria-label="ca. 250 mm - Mutternstäbe">&nbsp;</div>
+                                    <div class="inventory-cell" data-row="1" data-col="4" aria-label="ca. 250 mm - Versetzte Geraden">&nbsp;</div>
+                                </div>
+                            </div>
+                            <div class="inventory-row" data-row-index="2" data-length-label="ca. 300 mm">
+                                <span class="row-label">ca. 300 mm</span>
+                                <div class="inventory-cells">
+                                    <div class="inventory-cell" data-row="2" data-col="1" aria-label="ca. 300 mm - Geraden">&nbsp;</div>
+                                    <div class="inventory-cell" data-row="2" data-col="2" aria-label="ca. 300 mm - Diagonalen">&nbsp;</div>
+                                    <div class="inventory-cell" data-row="2" data-col="3" aria-label="ca. 300 mm - Mutternstäbe">&nbsp;</div>
+                                    <div class="inventory-cell" data-row="2" data-col="4" aria-label="ca. 300 mm - Versetzte Geraden">&nbsp;</div>
+                                </div>
+                            </div>
+                            <div class="inventory-row" data-row-index="3" data-length-label="ca. 360 mm">
+                                <span class="row-label">ca. 360 mm</span>
+                                <div class="inventory-cells">
+                                    <div class="inventory-cell" data-row="3" data-col="1" aria-label="ca. 360 mm - Geraden">&nbsp;</div>
+                                    <div class="inventory-cell" data-row="3" data-col="2" aria-label="ca. 360 mm - Diagonalen">&nbsp;</div>
+                                    <div class="inventory-cell" data-row="3" data-col="3" aria-label="ca. 360 mm - Mutternstäbe">&nbsp;</div>
+                                    <div class="inventory-cell" data-row="3" data-col="4" aria-label="ca. 360 mm - Versetzte Geraden">&nbsp;</div>
+                                </div>
+                            </div>
+                            <div class="inventory-row" data-row-index="4" data-length-label="ca. 460 mm">
+                                <span class="row-label">ca. 460 mm</span>
+                                <div class="inventory-cells">
+                                    <div class="inventory-cell" data-row="4" data-col="1" aria-label="ca. 460 mm - Geraden">&nbsp;</div>
+                                    <div class="inventory-cell" data-row="4" data-col="2" aria-label="ca. 460 mm - Diagonalen">&nbsp;</div>
+                                    <div class="inventory-cell" data-row="4" data-col="3" aria-label="ca. 460 mm - Mutternstäbe">&nbsp;</div>
+                                    <div class="inventory-cell" data-row="4" data-col="4" aria-label="ca. 460 mm - Versetzte Geraden">&nbsp;</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="inventory-box-note">Box auf dem Lager: Schrauben & Noppenscheiben.</div>
+                        <div class="inventory-footer" id="inventory-instruction">Halte ein Bauteil in die Kamera.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="instruction-modal" class="instruction-modal hidden">
+        <div class="instruction-content">
+            <button id="instruction-close-btn" type="button" class="modal-close-button" aria-label="Popup schließen">x</button>
+            <p id="instruction-text"></p>
+            <div id="instruction-grid-wrapper" class="instruction-grid-wrapper hidden">
+                <div class="instruction-grid">
+                    <div class="instruction-grid-row">
+                        <div class="instruction-grid-cell" data-row="1" data-col="1">1</div>
+                        <div class="instruction-grid-cell" data-row="1" data-col="2">2</div>
+                        <div class="instruction-grid-cell" data-row="1" data-col="3">3</div>
+                        <div class="instruction-grid-cell" data-row="1" data-col="4">4</div>
+                    </div>
+                    <div class="instruction-grid-row">
+                        <div class="instruction-grid-cell" data-row="2" data-col="1">1</div>
+                        <div class="instruction-grid-cell" data-row="2" data-col="2">2</div>
+                        <div class="instruction-grid-cell" data-row="2" data-col="3">3</div>
+                        <div class="instruction-grid-cell" data-row="2" data-col="4">4</div>
+                    </div>
+                    <div class="instruction-grid-row">
+                        <div class="instruction-grid-cell" data-row="3" data-col="1">1</div>
+                        <div class="instruction-grid-cell" data-row="3" data-col="2">2</div>
+                        <div class="instruction-grid-cell" data-row="3" data-col="3">3</div>
+                        <div class="instruction-grid-cell" data-row="3" data-col="4">4</div>
+                    </div>
+                    <div class="instruction-grid-row">
+                        <div class="instruction-grid-cell" data-row="4" data-col="1">1</div>
+                        <div class="instruction-grid-cell" data-row="4" data-col="2">2</div>
+                        <div class="instruction-grid-cell" data-row="4" data-col="3">3</div>
+                        <div class="instruction-grid-cell" data-row="4" data-col="4">4</div>
+                    </div>
+                </div>
+                <div class="instruction-grid-note" id="instruction-grid-note"></div>
+            </div>
+        </div>
+    </div>
+    <div id="part-info-modal" class="instruction-modal hidden part-info-modal">
+        <div class="instruction-content">
+            <button id="part-info-close-btn" type="button" class="modal-close-button" aria-label="Popup schließen">x</button>
+            <h3>Bauteilbeschreibung</h3>
+            <div class="part-info-buttons">
+                <button type="button" class="part-info-button" data-part="Gerade">Gerade</button>
+                <button type="button" class="part-info-button" data-part="Versetzte Gerade">Versetzte Gerade</button>
+                <button type="button" class="part-info-button" data-part="Diagonale">Diagonale</button>
+                <button type="button" class="part-info-button" data-part="Noppenscheibe">Noppenscheibe</button>
+                <button type="button" class="part-info-button" data-part="Mutternstab">Mutternstab</button>
+            </div>
+            <div class="video-wrapper">
+                <video id="part-info-video" class="hidden" loop muted playsinline controls></video>
+                <div id="part-info-placeholder" class="video-placeholder hidden">Video nicht verfügbar.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mission-popup" class="instruction-modal hidden mission-popup" role="status" aria-live="polite">
+        <div class="instruction-content">
+            <button type="button" id="mission-popup-close" class="modal-close-button" aria-label="Benachrichtigung schließen">x</button>
+            <p id="mission-popup-text"></p>
+        </div>
+    </div>
+
+    <script>
+        const modeButtons = document.querySelectorAll(".mode-button");
+        const gameBody = document.querySelector(".game-body");
+        const missionLabel = document.querySelector("#mission-card .label");
+        const missionValue = document.getElementById("mission-value");
+        const statusValue = document.getElementById("status-value");
+        const timeLabel = document.querySelector("#time-card .label");
+        const timeValue = document.getElementById("time-value");
+        const scoreValue = document.getElementById("score-value");
+        const streakValue = document.getElementById("streak-value");
+        const attemptValue = document.getElementById("attempt-value");
+        const lastDetectedValue = document.getElementById("last-detected-value");
+        const modeInstructions = document.getElementById("mode-instructions");
+        const instructionHeadingEl = document.getElementById("instruction-heading");
+        const instructionStepsEl = document.getElementById("instruction-steps");
+        const roundProgressValue = document.getElementById("round-progress-value");
+        const scoreTrackValue = document.getElementById("score-track-value");
+        const roundLabel = document.getElementById("round-label");
+        const scoreTrackLabel = document.getElementById("score-track-label");
+        const streakLabel = document.querySelector("#streak-card .label");
+        const attemptLabel = document.querySelector("#attempt-card .label");
+        const roundCard = document.getElementById("round-card");
+        const scoreTrackCard = document.getElementById("score-track-card");
+        const streakCard = document.getElementById("streak-card");
+        const attemptCard = document.getElementById("attempt-card");
+
+        const adminControls = document.getElementById("admin-controls");
+        const loginForm = document.getElementById("login-form");
+        const loginUsername = document.getElementById("login-username");
+        const loginPassword = document.getElementById("login-password");
+        const loginBtn = document.getElementById("login-btn");
+        const loginToggle = document.getElementById("login-toggle");
+        const loggedInPanel = document.getElementById("logged-in-panel");
+        const loggedInUser = document.getElementById("logged-in-user");
+        const logoutBtn = document.getElementById("logout-btn");
+        const startBtn = document.getElementById("start-game-btn");
+        const nextBtn = document.getElementById("next-mission-btn");
+        const recalibrateBtn = document.getElementById("recalibrate-btn");
+        const restartBtn = document.getElementById("restart-cameras-btn");
+        const resetBtn = document.getElementById("reset-game-btn");
+        const instructionModal = document.getElementById("instruction-modal");
+        const instructionText = document.getElementById("instruction-text");
+        const inventoryPanel = document.getElementById("inventory-panel");
+        const inventoryInstruction = document.getElementById("inventory-instruction");
+        const inventoryCells = Array.from(document.querySelectorAll(".inventory-cell"));
+        const inventoryRowLabels = new Map();
+        document.querySelectorAll(".inventory-row").forEach((rowEl) => {
+            const index = Number(rowEl.dataset.rowIndex);
+            const label = rowEl.dataset.lengthLabel || (rowEl.querySelector(".row-label")?.textContent || "").trim();
+            if (Number.isFinite(index) && label) {
+                inventoryRowLabels.set(index, label);
+            }
+        });
+        const inventoryColumnLabels = new Map();
+        document.querySelectorAll(".inventory-column-label").forEach((colEl) => {
+            const index = Number(colEl.dataset.col);
+            const label = (colEl.textContent || "").trim();
+            if (Number.isFinite(index) && label) {
+                inventoryColumnLabels.set(index, label);
+            }
+        });
+        const instructionGridWrapper = document.getElementById("instruction-grid-wrapper");
+        const instructionGridCells = Array.from(document.querySelectorAll(".instruction-grid-cell"));
+        const instructionGridNote = document.getElementById("instruction-grid-note");
+        const infoButtons = document.querySelectorAll(".info-button");
+        const instructionCloseBtn = document.getElementById("instruction-close-btn");
+        const partInfoBtn = document.getElementById("part-info-btn");
+        const partInfoModal = document.getElementById("part-info-modal");
+        const partInfoButtons = Array.from(document.querySelectorAll(".part-info-button"));
+        const partInfoVideo = document.getElementById("part-info-video");
+        const partInfoPlaceholder = document.getElementById("part-info-placeholder");
+        const partInfoCloseBtn = document.getElementById("part-info-close-btn");
+        const cameraStatusBanner = document.getElementById("camera-status-banner");
+        const cameraStreams = Array.from(document.querySelectorAll(".camera-stream"));
+        const detectionFeedbackBox = document.getElementById("detection-feedback");
+        const detectionFeedbackText = document.getElementById("detection-feedback-text");
+        const instructionFeedbackText = document.getElementById("instruction-feedback-text");
+        const missionPopup = document.getElementById("mission-popup");
+        const missionPopupText = document.getElementById("mission-popup-text");
+        const missionPopupClose = document.getElementById("mission-popup-close");
+        let missionPopupTimeout = null;
+        let missionPopupRefreshHandle = null;
+        let pendingMissionSuccess = null;
+
+        const modeInfoTexts = {
+            missions: "Im Modi Finde-richtige-Bauteil suchst du vorgegebene Bauteile. Folge den Anweisungen und erfülle die Aufgaben so schnell und präzise wie möglich.",
+            inventory: "Bei der Lagersortierung erkennst du Bauteile mit der Kamera und legst sie ins angezeigte Fach. Folge der Lager-Anweisung, um Punkte zu sammeln."
+        };
+        const modeInstructionsData = {
+            missions: {
+                title: "Finde richtiges Bauteile",
+                steps: [
+                    "Der Demonstrator nennt zufällig ein Bauteil. Suche es in der Schublade (links).",
+                    "Lege dein Bauteil in den Demonstrator. Er sagt dir, ob es korrekt ist.",
+                    "Gewonnen hast du bei 5 richtigen Bauteilen."
+                ]
+            },
+            inventory: {
+                title: "Sortieren",
+                steps: [
+                    "Hole ein beliebiges Bauteil aus der Schublade.",
+                    "Halte es in den Demonstrator und lass es analysieren.",
+                    "Über das Pop-up-Fenster erfährst du, wo du das Bauteil rechts ins Lager einsortieren sollst. Schrauben & Noppenscheiben kommen in die Box auf dem Lager.",
+                    "Wiederhole ab Schritt 1 für 90 Sekunden."
+                ]
+            }
+        };
+        const partVideoMap = {
+            "Gerade": "/videos/gerade.mp4",
+            "Versetzte Gerade": "/videos/versetzte_gerade.mp4",
+            "Diagonale": "/videos/diagonale.mp4",
+            "Noppenscheibe": "/videos/noppenscheibe.mp4",
+            "Mutternstab": "/videos/mutternstab.mp4"
+        };
+
+        let lastState = null;
+        let cameraStatusHideTimeout = null;
+        let authStateIsAdmin = null;
+        let loginDropdownOpen = false;
+        let lastTimeoutShownForMode = null;
+        let stateRequestSequence = 0;
+        let lastAppliedStateSequence = 0;
+
+        function nextStateRequestId() {
+            stateRequestSequence += 1;
+            return stateRequestSequence;
+        }
+
+        function applyStateResponse(state, requestId) {
+            if (!state) {
+                return;
+            }
+            const sequence = typeof requestId === "number" ? requestId : nextStateRequestId();
+            if (sequence < lastAppliedStateSequence) {
+                return;
+            }
+            lastAppliedStateSequence = sequence;
+            renderState(state);
+        }
+
+        function updateAuthUI(isAdmin, username = "Admin") {
+            if (!adminControls || !loginForm || !loggedInPanel) {
+                return;
+            }
+            if (authStateIsAdmin === isAdmin) {
+                if (isAdmin && loggedInUser) {
+                    loggedInUser.textContent = username || "Admin";
+                }
+                return;
+            }
+            authStateIsAdmin = isAdmin;
+            if (isAdmin) {
+                adminControls.classList.remove("hidden");
+                loginDropdownOpen = false;
+                loginForm.classList.add("hidden");
+                loggedInPanel.classList.remove("hidden");
+                if (loginToggle) {
+                    loginToggle.classList.add("hidden");
+                }
+                toggleLoginDropdown(false);
+                if (loggedInUser) {
+                    loggedInUser.textContent = username || "Admin";
+                }
+                if (loginPassword) {
+                    loginPassword.value = "";
+                }
+            } else {
+                adminControls.classList.add("hidden");
+                loggedInPanel.classList.add("hidden");
+                if (loginToggle) {
+                    loginToggle.classList.remove("hidden");
+                }
+                loginDropdownOpen = false;
+                if (loginForm) {
+                    loginForm.classList.add("hidden");
+                }
+                if (loginPassword) {
+                    loginPassword.value = "";
+                }
+                hideCameraStatus();
+            }
+        }
+
+        function setCameraStatus(message, variant = "info", sticky = false) {
+            if (!cameraStatusBanner) {
+                return;
+            }
+            cameraStatusBanner.textContent = message;
+            cameraStatusBanner.classList.add("visible");
+            cameraStatusBanner.classList.remove("status-busy", "status-success", "status-error");
+            if (variant === "busy") {
+                cameraStatusBanner.classList.add("status-busy");
+            } else if (variant === "success") {
+                cameraStatusBanner.classList.add("status-success");
+            } else if (variant === "error") {
+                cameraStatusBanner.classList.add("status-error");
+            }
+            if (cameraStatusHideTimeout) {
+                clearTimeout(cameraStatusHideTimeout);
+                cameraStatusHideTimeout = null;
+            }
+            if (!sticky && message) {
+                cameraStatusHideTimeout = window.setTimeout(() => {
+                    cameraStatusBanner.classList.remove("visible");
+                    cameraStatusBanner.classList.remove("status-busy", "status-success", "status-error");
+                    cameraStatusBanner.textContent = "";
+                    cameraStatusHideTimeout = null;
+                }, 3500);
+            }
+        }
+
+        function hideCameraStatus() {
+            if (!cameraStatusBanner) {
+                return;
+            }
+            if (cameraStatusHideTimeout) {
+                clearTimeout(cameraStatusHideTimeout);
+                cameraStatusHideTimeout = null;
+            }
+            cameraStatusBanner.classList.remove("visible", "status-busy", "status-success", "status-error");
+            cameraStatusBanner.textContent = "";
+        }
+
+        function stopCameraStreams() {
+            cameraStreams.forEach((img) => {
+                const src = img.dataset.streamSrc || img.getAttribute("src");
+                if (src) {
+                    img.dataset.streamSrc = src.replace(/\?ts=\d+$/, "");
+                    img.dataset.wasActive = "1";
+                }
+                img.src = "";
+            });
+        }
+
+        function startCameraStreams() {
+            cameraStreams.forEach((img) => {
+                if (!img.dataset.wasActive) {
+                    return;
+                }
+                const baseSrc = img.dataset.streamSrc;
+                if (baseSrc) {
+                    img.src = `${baseSrc}?ts=${Date.now()}`;
+                }
+                delete img.dataset.wasActive;
+            });
+        }
+
+        function sleep(ms) {
+            return new Promise((resolve) => window.setTimeout(resolve, ms));
+        }
+
+        async function attemptLogin() {
+            if (!loginBtn) {
+                return;
+            }
+            if (!loginDropdownOpen) {
+                toggleLoginDropdown(true);
+                if (loginUsername) {
+                    loginUsername.focus();
+                }
+                return;
+            }
+            const username = loginUsername ? loginUsername.value.trim() : "";
+            const password = loginPassword ? loginPassword.value : "";
+            if (!username || !password) {
+                showErrorMessage("Bitte Benutzername und Passwort eingeben.");
+                return;
+            }
+            try {
+                loginBtn.disabled = true;
+                const response = await fetch("/auth/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password })
+                });
+                if (!response.ok) {
+                    let detail = `HTTP ${response.status}`;
+                    try {
+                        const errData = await response.json();
+                        if (errData && errData.detail) {
+                            detail = errData.detail;
+                        }
+                    } catch {
+                        /* ignore */
+                    }
+                    showErrorMessage(detail);
+                    if (loginPassword) {
+                        loginPassword.value = "";
+                        loginPassword.focus();
+                    }
+                    return;
+                }
+                if (loginPassword) {
+                    loginPassword.value = "";
+                }
+                await refreshState();
+                toggleLoginDropdown(false);
+            } catch (err) {
+                showErrorMessage(`Login fehlgeschlagen: ${err.message || err}`);
+                if (loginPassword) {
+                    loginPassword.value = "";
+                    loginPassword.focus();
+                }
+            } finally {
+                loginBtn.disabled = false;
+            }
+        }
+
+        async function logoutAdmin() {
+            if (!logoutBtn) {
+                return;
+            }
+            try {
+                logoutBtn.disabled = true;
+                const response = await fetch("/auth/logout", { method: "POST" });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                await refreshState();
+                if (loginUsername) {
+                    loginUsername.focus();
+                }
+                toggleLoginDropdown(false);
+            } catch (err) {
+                showErrorMessage(`Logout fehlgeschlagen: ${err.message || err}`);
+            } finally {
+                logoutBtn.disabled = false;
+            }
+        }
+
+        function toggleLoginDropdown(forceState = null) {
+            if (!loginForm || !loginToggle) {
+                return;
+            }
+            if (forceState === true) {
+                loginDropdownOpen = true;
+            } else if (forceState === false) {
+                loginDropdownOpen = false;
+            } else {
+                loginDropdownOpen = !loginDropdownOpen;
+            }
+            if (loginDropdownOpen) {
+                loginForm.classList.remove("hidden");
+                if (loginUsername) {
+                    loginUsername.focus();
+                }
+            } else {
+                loginForm.classList.add("hidden");
+            }
+        }
+
+        async function postAction(url, button, requireAdmin = true) {
+            if (requireAdmin && lastState && !lastState.is_admin) {
+                showErrorMessage("Nur Admin kann diese Aktion ausführen.");
+                return;
+            }
+            try {
+                if (button) {
+                    button.disabled = true;
+                }
+                const requestId = nextStateRequestId();
+                const response = await fetch(url, { method: "POST" });
+                if (!response.ok) {
+                    let detail = `HTTP ${response.status}`;
+                    let data = null;
+                    try {
+                        data = await response.json();
+                        if (data && data.detail) {
+                            detail = data.detail;
+                        }
+                    } catch (parseErr) {
+                        // ignore
+                    }
+                    if (response.status === 401 && requireAdmin) {
+                        detail = data && data.detail ? data.detail : "Nicht autorisiert – bitte als Admin einloggen.";
+                        updateAuthUI(false);
+                        try {
+                            await refreshState();
+                        } catch (refreshErr) {
+                            showOfflineMessage(refreshErr);
+                        }
+                    }
+                    showErrorMessage(detail);
+                    return;
+                }
+                const state = await response.json();
+                applyStateResponse(state, requestId);
+            } catch (err) {
+                showOfflineMessage(err);
+            } finally {
+                if (!button) {
+                    return;
+                }
+                if (requireAdmin && lastState && !lastState.is_admin) {
+                    button.disabled = true;
+                    return;
+                }
+                if (button === startBtn) {
+                    button.disabled = lastState ? (!lastState.mode || !!lastState.game_enabled) : true;
+                } else if (button === nextBtn) {
+                    button.disabled = lastState ? (!lastState.mode || !lastState.game_enabled || lastState.mode === "inventory") : true;
+                } else if (button === resetBtn) {
+                    button.disabled = lastState ? !lastState.mode : true;
+                } else if (button === recalibrateBtn || button === restartBtn) {
+                    button.disabled = lastState ? !lastState.is_admin : true;
+                } else {
+                    button.disabled = false;
+                }
+            }
+        }
+
+        async function selectMode(mode) {
+            try {
+                const requestId = nextStateRequestId();
+                const response = await fetch("/game/select", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ mode })
+                });
+                if (!response.ok) {
+                    let detail = `HTTP ${response.status}`;
+                    try {
+                        const data = await response.json();
+                        if (data && data.detail) {
+                            detail = data.detail;
+                        }
+                    } catch (parseErr) {
+                        // ignore
+                    }
+                    showErrorMessage(detail);
+                    return;
+                }
+                const state = await response.json();
+                applyStateResponse(state, requestId);
+            } catch (err) {
+                showOfflineMessage(err);
+            }
+        }
+
+        async function restartCameras() {
+            if (!restartBtn) {
+                return;
+            }
+            if (!lastState || !lastState.is_admin) {
+                showErrorMessage("Nur Admin kann die Kameras neu starten.");
+                return;
+            }
+            restartBtn.disabled = true;
+            setCameraStatus("Streams werden beendet …", "busy", true);
+            stopCameraStreams();
+            await sleep(150);
+            setCameraStatus("Kameras werden neu gestartet …", "busy", true);
+            try {
+                const requestId = nextStateRequestId();
+                const response = await fetch("/cameras/restart", { method: "POST" });
+                if (!response.ok) {
+                    let detail = `HTTP ${response.status}`;
+                    try {
+                        const data = await response.json();
+                        if (data && data.detail) {
+                            detail = data.detail;
+                        }
+                        if (response.status === 401) {
+                            detail = data && data.detail ? data.detail : "Nicht autorisiert – bitte als Admin einloggen.";
+                            updateAuthUI(false);
+                            try {
+                                await refreshState();
+                            } catch (refreshErr) {
+                                showOfflineMessage(refreshErr);
+                            }
+                        }
+                    } catch (parseErr) {
+                        // ignore
+                    }
+                    throw new Error(detail);
+                }
+                const state = await response.json();
+                applyStateResponse(state, requestId);
+                restartBtn.disabled = true;
+                setCameraStatus("Streams werden neu geladen …", "busy", true);
+                await sleep(350);
+                startCameraStreams();
+                setCameraStatus("Kameras wieder online.", "success");
+            } catch (err) {
+                console.error(err);
+                startCameraStreams();
+                setCameraStatus(`Neustart fehlgeschlagen: ${err.message || err}`, "error", true);
+            } finally {
+                if (lastState && !lastState.is_admin) {
+                    restartBtn.disabled = true;
+                } else {
+                    restartBtn.disabled = false;
+                }
+            }
+        }
+
+        function updateModeButtons(activeMode, availableModes = []) {
+            const names = new Map();
+            availableModes.forEach((entry) => names.set(entry.id, entry.name));
+            modeButtons.forEach((button) => {
+                const mode = button.dataset.mode;
+                if (names.has(mode)) {
+                    button.textContent = names.get(mode);
+                }
+                button.classList.toggle("active", mode === activeMode);
+            });
+        }
+
+        function highlightInventoryCell(row, col) {
+            const hasHighlight = row !== null && row !== undefined && col !== null && col !== undefined;
+            inventoryCells.forEach((cell) => {
+                const matches = hasHighlight && Number(cell.dataset.row) === Number(row) && Number(cell.dataset.col) === Number(col);
+                if (matches) {
+                    cell.classList.add("active");
+                } else {
+                    cell.classList.remove("active");
+                }
+            });
+        }
+
+        function resetInstructionGrid() {
+            if (!instructionGridWrapper) return;
+            instructionGridWrapper.classList.add("hidden");
+            instructionGridWrapper.classList.remove("box-mode");
+            if (instructionGridNote) {
+                instructionGridNote.textContent = "";
+            }
+            instructionGridCells.forEach((cell) => cell.classList.remove("active"));
+        }
+
+        function updateModeInstructions(activeMode) {
+            if (!modeInstructions || !instructionHeadingEl || !instructionStepsEl) {
+                return;
+            }
+            const data = modeInstructionsData[activeMode];
+            if (!data) {
+                modeInstructions.classList.add("hidden");
+                instructionStepsEl.innerHTML = "";
+                instructionHeadingEl.textContent = "Spielablauf";
+                return;
+            }
+            modeInstructions.classList.remove("hidden");
+            instructionHeadingEl.textContent = data.title;
+            instructionStepsEl.innerHTML = "";
+            data.steps.forEach((step) => {
+                const li = document.createElement("li");
+                li.textContent = step;
+                instructionStepsEl.appendChild(li);
+            });
+        }
+
+        function showTimeoutPopup(message) {
+            if (!instructionModal || !instructionText) return;
+            instructionModal.dataset.manual = "timeout";
+            instructionText.textContent = message;
+            instructionModal.classList.remove("hidden");
+            resetInstructionGrid();
+        }
+
+        function hideMissionPopup() {
+            if (!missionPopup) {
+                return;
+            }
+            if (missionPopupTimeout) {
+                window.clearTimeout(missionPopupTimeout);
+                missionPopupTimeout = null;
+            }
+            missionPopup.classList.add("hidden");
+            missionPopup.classList.remove("success", "warn", "info");
+            if (missionPopupText) {
+                missionPopupText.textContent = "";
+            }
+            if (missionPopupRefreshHandle) {
+                window.clearTimeout(missionPopupRefreshHandle);
+                missionPopupRefreshHandle = null;
+            }
+            pendingMissionSuccess = null;
+        }
+
+        function showMissionPopup(message, level = "info", duration = 4500) {
+            if (!missionPopup || !missionPopupText) {
+                return;
+            }
+            const levelClass = level === "success" ? "success" : level === "warn" ? "warn" : "info";
+            if (missionPopupTimeout) {
+                window.clearTimeout(missionPopupTimeout);
+                missionPopupTimeout = null;
+            }
+            missionPopup.classList.remove("hidden", "success", "warn", "info");
+            missionPopup.classList.add(levelClass);
+            missionPopupText.textContent = message;
+            if (missionPopupRefreshHandle) {
+                window.clearTimeout(missionPopupRefreshHandle);
+                missionPopupRefreshHandle = null;
+            }
+            missionPopupTimeout = window.setTimeout(() => hideMissionPopup(), duration);
+        }
+
+        function updateMissionPopup(message, level = null, duration = 4500) {
+            if (!missionPopup || !missionPopupText) {
+                return;
+            }
+            if (missionPopup.classList.contains("hidden")) {
+                showMissionPopup(message, level || "info", duration);
+                return;
+            }
+            const levelClass = level === "success" ? "success" : level === "warn" ? "warn" : "info";
+            if (level) {
+                missionPopup.classList.remove("success", "warn", "info");
+                missionPopup.classList.add(levelClass);
+            }
+            missionPopupText.textContent = message;
+            if (missionPopupTimeout) {
+                window.clearTimeout(missionPopupTimeout);
+                missionPopupTimeout = null;
+            }
+            if (missionPopupRefreshHandle) {
+                window.clearTimeout(missionPopupRefreshHandle);
+                missionPopupRefreshHandle = null;
+            }
+            missionPopupTimeout = window.setTimeout(() => hideMissionPopup(), duration);
+        }
+
+        function updatePartInfoVideo(partName) {
+            if (!partInfoVideo || !partInfoPlaceholder) {
+                return;
+            }
+            partInfoButtons.forEach((btn) => {
+                btn.classList.toggle("active", btn.dataset.part === partName);
+            });
+            const sourceUrl = partVideoMap[partName];
+            partInfoVideo.pause();
+            partInfoVideo.onloadeddata = null;
+            partInfoVideo.onerror = null;
+            partInfoVideo.currentTime = 0;
+            partInfoVideo.classList.add("hidden");
+            partInfoPlaceholder.classList.remove("hidden");
+            partInfoPlaceholder.textContent = "Video wird geladen …";
+            if (sourceUrl) {
+                const cacheBustedUrl = `${sourceUrl}?ts=${Date.now()}`;
+                partInfoVideo.src = cacheBustedUrl;
+                partInfoVideo.muted = true;
+                partInfoVideo.loop = true;
+                partInfoVideo.playsInline = true;
+                partInfoVideo.onloadeddata = () => {
+                    partInfoPlaceholder.classList.add("hidden");
+                    partInfoVideo.classList.remove("hidden");
+                    const playPromise = partInfoVideo.play();
+                    if (playPromise && typeof playPromise.catch === "function") {
+                        playPromise.catch(() => {
+                            // Ignore autoplay errors; user interaction already occurred.
+                        });
+                    }
+                };
+                partInfoVideo.onerror = () => {
+                    partInfoVideo.classList.add("hidden");
+                    partInfoPlaceholder.classList.remove("hidden");
+                    partInfoPlaceholder.textContent = "Video konnte nicht geladen werden.";
+                };
+                partInfoVideo.load();
+            } else {
+                partInfoVideo.classList.add("hidden");
+                partInfoPlaceholder.classList.remove("hidden");
+                partInfoPlaceholder.textContent = "Video nicht verfügbar.";
+            }
+        }
+
+        function openPartInfoModal(defaultPart = "Gerade") {
+            if (!partInfoModal) {
+                return;
+            }
+            partInfoModal.classList.remove("hidden");
+            if (!partVideoMap[defaultPart]) {
+                defaultPart = Object.keys(partVideoMap)[0];
+            }
+            updatePartInfoVideo(defaultPart);
+        }
+
+        function closePartInfoModal() {
+            if (!partInfoModal) {
+                return;
+            }
+            partInfoModal.classList.add("hidden");
+            if (partInfoVideo) {
+                partInfoVideo.pause();
+                partInfoVideo.currentTime = 0;
+                partInfoVideo.classList.add("hidden");
+                partInfoVideo.onloadeddata = null;
+                partInfoVideo.onerror = null;
+                partInfoVideo.removeAttribute("src");
+                partInfoVideo.load();
+            }
+            if (partInfoPlaceholder) {
+                partInfoPlaceholder.classList.add("hidden");
+            }
+            partInfoButtons.forEach((btn) => btn.classList.remove("active"));
+        }
+
+        function showManualInfo(mode) {
+            if (!instructionModal || !instructionText) return;
+            const text = modeInfoTexts[mode];
+            if (!text) return;
+            instructionModal.dataset.manual = "true";
+            resetInstructionGrid();
+            instructionText.textContent = text;
+            instructionModal.classList.remove("hidden");
+        }
+
+        function updateInstructionGrid(state, isInventory, storageInstructionText = "") {
+            if (!instructionGridWrapper) return;
+            if (!isInventory) {
+                resetInstructionGrid();
+                return;
+            }
+            const row = Number(state.storage_row);
+            const col = Number(state.storage_column);
+            const hasGridTarget = state.storage_area === "grid"
+                && Number.isFinite(row)
+                && Number.isFinite(col);
+
+            if (hasGridTarget) {
+                instructionGridWrapper.classList.remove("hidden");
+                instructionGridWrapper.classList.remove("box-mode");
+                if (instructionGridNote) {
+                    const rowLabel = inventoryRowLabels.get(row);
+                    const colLabel = inventoryColumnLabels.get(col);
+                    const rowText = rowLabel ? `Reihe ${row} (${rowLabel})` : `Reihe ${row}`;
+                    const colText = colLabel ? `Spalte ${col} (${colLabel})` : `Spalte ${col}`;
+                    instructionGridNote.textContent = `${rowText}, ${colText}`;
+                }
+                instructionGridCells.forEach((cell) => {
+                    const cellRow = Number(cell.dataset.row);
+                    const cellCol = Number(cell.dataset.col);
+                    cell.classList.toggle("active", cellRow === row && cellCol === col);
+                });
+                return;
+            }
+
+            if (state.storage_area === "box") {
+                instructionGridWrapper.classList.remove("hidden");
+                instructionGridWrapper.classList.add("box-mode");
+                if (instructionGridNote) {
+                    instructionGridNote.textContent = storageInstructionText || "Lege das Bauteil in die Box auf dem Lagerregal.";
+                }
+                instructionGridCells.forEach((cell) => cell.classList.remove("active"));
+                return;
+            }
+
+            resetInstructionGrid();
+        }
+
+        function renderState(state) {
+            const prevState = lastState;
+            lastState = state;
+            const activeMode = state.mode || null;
+            const availableModes = Array.isArray(state.available_modes) ? state.available_modes : [];
+            const isInventory = activeMode === "inventory";
+            const isMissions = activeMode === "missions";
+            const prevMode = prevState ? prevState.mode : null;
+            const prevWasMissions = prevMode === "missions";
+            const prevTarget = prevState && prevState.target ? prevState.target : null;
+            const currentTarget = state.target || null;
+            const hasMode = !!activeMode;
+            const isAdmin = !!state.is_admin;
+            const adminName = state.admin_username || "Admin";
+            const awaitingClearFrame = !!state.awaiting_clear_frame;
+            updateAuthUI(isAdmin, adminName);
+            updateModeButtons(activeMode, availableModes);
+            if (prevState && prevState.mode !== activeMode) {
+                lastTimeoutShownForMode = null;
+            }
+            updateModeInstructions(activeMode);
+            if (instructionModal && instructionModal.dataset.manual === "timeout" && state.game_enabled && state.round_active) {
+                delete instructionModal.dataset.manual;
+                instructionModal.classList.add("hidden");
+                resetInstructionGrid();
+            }
+
+            if (gameBody) {
+                gameBody.style.display = hasMode ? "flex" : "none";
+            }
+            if (!hasMode) {
+                lastTimeoutShownForMode = null;
+            }
+
+            if (missionLabel) {
+                missionLabel.textContent = "Nächstes Bauteil";
+            }
+            if (timeLabel) {
+                timeLabel.textContent = "Zeit";
+            }
+
+            const hideInventoryMetrics = hasMode && isInventory;
+            if (roundCard) {
+                roundCard.classList.toggle("hidden", hideInventoryMetrics);
+            }
+            if (scoreTrackCard) {
+                scoreTrackCard.classList.toggle("hidden", hideInventoryMetrics);
+            }
+            if (streakCard) {
+                streakCard.classList.toggle("hidden", hideInventoryMetrics);
+            }
+            if (attemptCard) {
+                attemptCard.classList.toggle("hidden", hideInventoryMetrics);
+            }
+
+            if (!hasMode) {
+                missionValue.textContent = "Bitte Spiel auswählen.";
+                statusValue.textContent = "Bitte Spiel auswählen";
+            } else if (isInventory) {
+                if (missionLabel) {
+                    missionLabel.textContent = "Gefundenes Bauteil";
+                }
+                const detectedName = state.last_detected && state.last_detected.display
+                    ? state.last_detected.display
+                    : "-";
+                missionValue.textContent = detectedName;
+                if (timeLabel) {
+                    timeLabel.textContent = "Ablaufende Zeit";
+                }
+                if (!state.game_enabled) {
+                    statusValue.textContent = "Bereit";
+                } else if (state.round_active) {
+                    statusValue.textContent = "Sortieren aktiv";
+                } else {
+                    statusValue.textContent = "Zeit abgelaufen";
+                }
+            } else if (state.target && state.game_enabled) {
+                missionValue.textContent = state.target.display;
+                statusValue.textContent = "Modi aktiv";
+            } else if (!state.game_enabled) {
+                missionValue.textContent = "Noch kein Modi gewählt";
+                if ((state.round_number || 0) > 0 && (state.wins || state.losses)) {
+                    if (state.wins >= state.wins_to_win) {
+                        statusValue.textContent = "Match gewonnen";
+                    } else if (state.losses >= state.max_losses) {
+                        statusValue.textContent = "Match verloren";
+                    } else {
+                        statusValue.textContent = "Match beendet";
+                    }
+                } else {
+                    statusValue.textContent = "Bereit";
+                }
+            } else if (state.cooldown_remaining > 0) {
+                missionValue.textContent = "Nächstes Bauteil wird vorbereitet…";
+                statusValue.textContent = `Cooldown (${state.cooldown_remaining.toFixed(1)} s)`;
+            } else {
+                missionValue.textContent = "Nächstes Bauteil wird vorbereitet…";
+                statusValue.textContent = "Warte auf nächste Bauteil";
+            }
+
+            if (hasMode && isInventory) {
+                const timeRemaining = typeof state.time_remaining === "number" ? state.time_remaining : 0;
+                timeValue.textContent = `${timeRemaining.toFixed(1)} s`;
+                roundLabel.textContent = "";
+                roundProgressValue.textContent = "";
+                scoreTrackLabel.textContent = "";
+                scoreTrackValue.textContent = "";
+                streakLabel.textContent = "";
+                streakValue.textContent = "";
+                attemptLabel.textContent = "";
+                attemptValue.textContent = "";
+            } else if (hasMode) {
+                const roundLimit = state.round_limit || 0;
+                const roundNumber = state.round_number || 0;
+                roundLabel.textContent = "Gefundene Bauteile:";
+                roundProgressValue.textContent = roundLimit ? `${Math.min(roundNumber, roundLimit)} / ${roundLimit}` : `${roundNumber}`;
+                const winsToWin = state.wins_to_win || 0;
+                scoreTrackLabel.textContent = "Siege / Niederlagen";
+                scoreTrackValue.textContent = `${state.wins || 0} / ${state.losses || 0} (Ziel ${winsToWin})`;
+                timeValue.textContent = `${(state.round_time || 0).toFixed(1)} s`;
+                streakLabel.textContent = "Serie / Best";
+                streakValue.textContent = `${state.streak || 0} / ${state.best_streak || 0}`;
+                attemptLabel.textContent = "Versuche (gesamt)";
+                attemptValue.textContent = state.attempts || 0;
+            } else {
+                roundLabel.textContent = "Kennzahlen";
+                roundProgressValue.textContent = "-";
+                scoreTrackLabel.textContent = "Scores";
+                scoreTrackValue.textContent = "-";
+                timeValue.textContent = "0.0 s";
+                streakLabel.textContent = "Serie";
+                streakValue.textContent = "-";
+                attemptLabel.textContent = "Versuche";
+                attemptValue.textContent = "-";
+            }
+
+            const storageInstructionRaw = typeof state.storage_instruction === "string" ? state.storage_instruction.trim() : "";
+            const isGameEnabled = !!state.game_enabled;
+            const storageInstructionText = isGameEnabled ? storageInstructionRaw : "";
+
+            scoreValue.textContent = state.score || 0;
+
+            if (state.last_detected && state.last_detected.display) {
+                const confidence = state.last_detected.confidence;
+                const confText = typeof confidence === "number" ? ` (${Math.round(confidence * 100)}%)` : "";
+                const length = state.last_detected.length_mm;
+                const lengthText = typeof length === "number" ? ` • ${Math.round(length)} mm` : "";
+                lastDetectedValue.textContent = `${state.last_detected.display}${confText}${lengthText}`;
+            } else {
+                lastDetectedValue.textContent = "-";
+            }
+            if (!isGameEnabled) {
+                lastDetectedValue.textContent = "-";
+            }
+
+            const feedbackRaw = isGameEnabled ? (state.feedback || "") : "";
+            const feedbackLevel = state.feedback_level || "";
+
+            if (detectionFeedbackBox && detectionFeedbackText) {
+                detectionFeedbackBox.classList.remove("warn", "info");
+                if (!isGameEnabled) {
+                    detectionFeedbackBox.classList.add("info");
+                    detectionFeedbackText.textContent = "-";
+                } else if (feedbackLevel === "warn" && feedbackRaw) {
+                    detectionFeedbackBox.classList.add("warn");
+                    detectionFeedbackText.textContent = feedbackRaw;
+                } else if (feedbackLevel === "success" && feedbackRaw) {
+                    detectionFeedbackBox.classList.add("info");
+                    detectionFeedbackText.textContent = feedbackRaw;
+                } else {
+                    detectionFeedbackBox.classList.add("info");
+                    detectionFeedbackText.textContent = feedbackRaw || "-";
+                }
+                if (instructionFeedbackText) {
+                    const fallbackInstruction = "Halte das Bauteil in die Kamera.";
+                    const instructionTextValue = storageInstructionText || (isGameEnabled ? (state.instruction || fallbackInstruction) : fallbackInstruction);
+                    instructionFeedbackText.textContent = instructionTextValue;
+                }
+            }
+
+            const adminActionDisabled = !isAdmin;
+            startBtn.disabled = !hasMode || !!state.game_enabled;
+            if (nextBtn) {
+                const hideNextButton = hasMode && isInventory;
+                nextBtn.classList.toggle("hidden", hideNextButton);
+                nextBtn.disabled = hideNextButton || !hasMode || !state.game_enabled;
+            }
+            resetBtn.disabled = !hasMode;
+            if (recalibrateBtn) {
+                recalibrateBtn.disabled = adminActionDisabled;
+            }
+            if (restartBtn) {
+                restartBtn.disabled = adminActionDisabled;
+            }
+
+            if (inventoryPanel) {
+                if (hasMode && isInventory) {
+                    inventoryPanel.classList.add("active");
+                    inventoryInstruction.textContent = storageInstructionText || "Halte ein Bauteil in die Kamera.";
+                    if (isGameEnabled && typeof state.storage_row === "number" && typeof state.storage_column === "number") {
+                        highlightInventoryCell(state.storage_row, state.storage_column);
+                    } else {
+                        highlightInventoryCell(null, null);
+                    }
+                } else {
+                    inventoryPanel.classList.remove("active");
+                    inventoryInstruction.textContent = "";
+                    highlightInventoryCell(null, null);
+                }
+            }
+
+            const hasSuccessInstruction = isInventory
+                && feedbackLevel === "success"
+                && storageInstructionText.length > 0;
+            const shouldShowStorageInstruction = storageInstructionText.length > 0 && (hasSuccessInstruction || (isInventory && awaitingClearFrame));
+            if (instructionModal) {
+                const useInventoryPopup = shouldShowStorageInstruction && isInventory;
+                instructionModal.classList.toggle("inventory-popup", useInventoryPopup);
+            }
+
+            if (instructionModal && !instructionModal.dataset.manual) {
+                const instructionTextValue = typeof state.instruction === "string" ? state.instruction.trim() : "";
+                const hasInstruction = instructionTextValue.length > 0;
+
+                if (hasInstruction) {
+                    instructionText.textContent = instructionTextValue;
+                    instructionModal.classList.remove("hidden");
+                    resetInstructionGrid();
+                } else if (shouldShowStorageInstruction) {
+                    instructionText.textContent = storageInstructionText;
+                    instructionModal.classList.remove("hidden");
+                    updateInstructionGrid(state, isInventory, storageInstructionText);
+                } else {
+                    instructionModal.classList.add("hidden");
+                    resetInstructionGrid();
+                }
+            }
+
+            const missionRoundSuccess = prevState
+                && prevWasMissions
+                && isMissions
+                && prevState.game_enabled
+                && state.game_enabled
+                && prevState.round_active
+                && !state.round_active
+                && state.feedback_level === "success";
+            if (missionRoundSuccess) {
+                const foundDisplay = prevTarget && prevTarget.display
+                    ? prevTarget.display
+                    : (state.feedback && state.feedback.trim()) || "Bauteil erkannt!";
+                pendingMissionSuccess = { foundDisplay };
+                const upcomingDisplay = currentTarget
+                    && (!prevTarget || prevTarget.id !== currentTarget.id)
+                    ? (currentTarget.display || currentTarget.id)
+                    : null;
+                if (upcomingDisplay) {
+                    showMissionPopup(`Super! ${foundDisplay} gefunden. Als nächstes: ${upcomingDisplay}.`, "success");
+                    pendingMissionSuccess = null;
+                }
+            }
+
+            const targetChanged = prevState
+                && prevWasMissions
+                && isMissions
+                && prevState.game_enabled
+                && state.game_enabled
+                && currentTarget
+                && (!prevTarget || prevTarget.id !== currentTarget.id);
+            if (pendingMissionSuccess && targetChanged) {
+                const nextDisplay = currentTarget.display || currentTarget.id || "nächstes Bauteil";
+                const message = `Super! ${pendingMissionSuccess.foundDisplay} gefunden. Als nächstes: ${nextDisplay}.`;
+                showMissionPopup(message, "success");
+                pendingMissionSuccess = null;
+            }
+
+            const missionFinished = prevState
+                && prevWasMissions
+                && (!state.game_enabled)
+                && prevState.game_enabled;
+            if (missionFinished) {
+                const level = state.feedback_level === "success" ? "success" : "warn";
+                const message = (state.feedback && state.feedback.trim())
+                    ? state.feedback
+                    : "Spiel beendet. Starte ein neues Spiel, um weiterzumachen.";
+                showMissionPopup(message, level);
+                pendingMissionSuccess = null;
+            }
+
+            if (!isMissions) {
+                pendingMissionSuccess = null;
+                if (!activeMode || activeMode === "inventory") {
+                    hideMissionPopup();
+                }
+            }
+
+            const timedOut = prevState
+                && prevState.mode === activeMode
+                && prevState.round_active
+                && prevState.game_enabled
+                && !state.round_active
+                && !state.game_enabled
+                && typeof state.feedback === "string"
+                && state.feedback.toLowerCase().includes("zeit ist abgelaufen");
+            if (timedOut && lastTimeoutShownForMode !== activeMode) {
+                showTimeoutPopup(state.feedback || "Zeit ist abgelaufen! Starte neu.");
+                lastTimeoutShownForMode = activeMode;
+            }
+            if (state.game_enabled && state.round_active) {
+                lastTimeoutShownForMode = null;
+            }
+        }
+
+        function showErrorMessage(message) {
+            resetInstructionGrid();
+            if (detectionFeedbackBox && detectionFeedbackText) {
+                detectionFeedbackBox.classList.remove("warn", "info");
+                detectionFeedbackBox.classList.add("warn");
+                detectionFeedbackText.textContent = message;
+            }
+            if (instructionFeedbackText) {
+                instructionFeedbackText.textContent = message;
+            }
+        }
+
+        function showOfflineMessage(err) {
+            statusValue.textContent = "Keine Verbindung";
+            startBtn.disabled = true;
+            nextBtn.disabled = true;
+            if (recalibrateBtn) {
+                recalibrateBtn.disabled = true;
+            }
+            if (restartBtn) {
+                restartBtn.disabled = true;
+            }
+            resetBtn.disabled = true;
+            resetInstructionGrid();
+            if (instructionModal) {
+                instructionModal.classList.add("hidden");
+                delete instructionModal.dataset.manual;
+            }
+            if (detectionFeedbackBox && detectionFeedbackText) {
+                detectionFeedbackBox.classList.remove("info");
+                detectionFeedbackBox.classList.add("warn");
+                detectionFeedbackText.textContent = `Gamification-Service nicht erreichbar (${err.message || err}).`;
+            }
+        }
+
+        async function refreshState() {
+            try {
+                const requestId = nextStateRequestId();
+                const response = await fetch("/game/state");
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const state = await response.json();
+                applyStateResponse(state, requestId);
+            } catch (err) {
+                showOfflineMessage(err);
+            }
+        }
+
+        if (loginToggle) {
+            loginToggle.addEventListener("click", () => toggleLoginDropdown());
+        }
+        if (loginForm) {
+        loginForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            attemptLogin();
+        });
+        }
+        if (logoutBtn) {
+            logoutBtn.addEventListener("click", logoutAdmin);
+        }
+        startBtn.addEventListener("click", () => postAction("/game/start", startBtn, false));
+        nextBtn.addEventListener("click", () => postAction("/game/next", nextBtn, false));
+        recalibrateBtn.addEventListener("click", () => postAction("/calibration/reset", recalibrateBtn));
+        restartBtn.addEventListener("click", restartCameras);
+        resetBtn.addEventListener("click", () => postAction("/game/reset", resetBtn, false));
+        modeButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                if (button.disabled) {
+                    return;
+                }
+                const mode = button.dataset.mode;
+                if (lastState && lastState.mode === mode) {
+                    return;
+                }
+                selectMode(mode);
+            });
+        });
+        infoButtons.forEach((button) => {
+            button.addEventListener("click", (event) => {
+                event.stopPropagation();
+                const mode = button.dataset.info;
+                showManualInfo(mode);
+            });
+        });
+        if (instructionCloseBtn) {
+            instructionCloseBtn.addEventListener("click", () => {
+                if (instructionModal) {
+                    instructionModal.classList.add("hidden");
+                    delete instructionModal.dataset.manual;
+                }
+                resetInstructionGrid();
+                lastTimeoutShownForMode = null;
+            });
+        }
+        if (partInfoBtn) {
+            partInfoBtn.addEventListener("click", () => {
+                openPartInfoModal("Gerade");
+            });
+        }
+        if (partInfoButtons.length) {
+            partInfoButtons.forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    updatePartInfoVideo(btn.dataset.part);
+                });
+            });
+        }
+        if (partInfoCloseBtn) {
+            partInfoCloseBtn.addEventListener("click", () => {
+                closePartInfoModal();
+            });
+        }
+        if (partInfoModal) {
+            partInfoModal.addEventListener("click", (event) => {
+                if (event.target === partInfoModal) {
+                    closePartInfoModal();
+                }
+            });
+        }
+        if (missionPopup) {
+            missionPopup.addEventListener("click", (event) => {
+                if (event.target === missionPopup) {
+                    hideMissionPopup();
+                }
+            });
+        }
+        if (missionPopupClose) {
+            missionPopupClose.addEventListener("click", () => hideMissionPopup());
+        }
+
+        updateAuthUI(false);
+        refreshState();
+        setInterval(refreshState, 650);
+
+        document.addEventListener("click", (event) => {
+            if (!loginForm || !loginToggle) {
+                return;
+            }
+            if (!loginDropdownOpen) {
+                return;
+            }
+            const target = event.target;
+            if (loginForm.contains(target) || loginToggle.contains(target)) {
+                return;
+            }
+            toggleLoginDropdown(false);
+        });
+    </script>
+
+</body>
+</html>

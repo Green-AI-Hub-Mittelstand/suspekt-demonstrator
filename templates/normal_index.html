@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Three-Camera View</title>
+    <style>
+        /* --- Grundlegende Reset-Stile --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        /* --- Kamera-Container --- */
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1.7fr 1fr;
+            align-items: stretch;
+            gap: 16px;
+            padding: 16px 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .camera-panel {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            height: 100%;
+        }
+        .camera-panel.center-camera {
+            min-width: 0;
+        }
+        .camera-panel.side-camera {
+            min-width: 0;
+        }
+        .camera-panel h2 {
+            margin-bottom: 10px;
+            font-size: 1.25rem;
+            text-align: center;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 8px;
+            width: 100%;
+        }
+        .camera-media {
+            width: 100%;
+            height: 430px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            background-color: #f7f7f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .camera-panel img {
+            height: 100%;
+            width: auto;
+            max-width: 100%;
+            display: block;
+            object-fit: contain;
+            image-rendering: auto;
+        }
+
+        /* --- Responsive Layout --- */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr 1.45fr 1fr;
+            }
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .camera-media {
+                height: 360px;
+            }
+        }
+
+        /* --- Logo Header Styles --- */
+        .logo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            gap: 24px;
+        }
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+        .logo-group img {
+            height: 60px;
+            max-width: 200px;
+            object-fit: contain;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header-button {
+            padding: 12px 20px;
+            border-radius: 8px;
+            background-color: #0b7dda;
+            color: #ffffff;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+        }
+        .header-button:hover {
+            background-color: #095c9c;
+        }
+    </style>
+</head>
+<body>
+    <!-- Logo Header -->
+    <div class="logo-header">
+        <div class="logo-group">
+            <img src="/static/system-180-logo.jpg" alt="System 180 Logo">
+            <img src="/static/green-ai-hub-mittelstand.svg" alt="Green AI Hub Logo">
+            <img src="/static/dfki_Logo_vz-1024x292.png" alt="DFKI Logo">
+        </div>
+        <div class="header-actions">
+            <a class="header-button" href="/roi">ROI einstellen</a>
+        </div>
+    </div>
+
+    <!-- Three-Camera Panels -->
+    <div class="container">
+        <!-- Left OAK-1 Max -->
+        <div class="camera-panel side-camera">
+            <h2>OAK-1 Max (Links)</h2>
+            <div class="camera-media">
+                <img src="/video_left" alt="Left OAK-1 Max Stream" />
+            </div>
+        </div>
+
+        <!-- Center USB Webcam -->
+        <div class="camera-panel center-camera">
+            <h2>Logitech Webcam mit Aruco-Messung</h2>
+            <div class="camera-media">
+                <img src="/video_center" alt="Center USB Webcam Stream" />
+            </div>
+        </div>
+
+        <!-- Right OAK-1 Max -->
+        <div class="camera-panel side-camera">
+            <h2>OAK-1 Max (Rechts)</h2>
+            <div class="camera-media">
+                <img src="/video_right" alt="Right OAK-1 Max Stream" />
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
