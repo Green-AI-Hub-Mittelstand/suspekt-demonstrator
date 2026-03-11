@@ -719,8 +719,37 @@
             }
         });
 
-        printButton.addEventListener("click", () => {
-            captureStatus.textContent = `Drucken folgt. Zustand: ${conditionSelect.value}.`;
+        printButton.addEventListener("click", async () => {
+            const component = components[Number(componentSelect.value)];
+            if (!component) {
+                captureStatus.textContent = "Bitte zuerst eine Komponente erfassen und auswählen.";
+                return;
+            }
+
+            printButton.disabled = true;
+            captureStatus.textContent = "Etikett wird gedruckt...";
+            try {
+                const response = await fetch("/api/drucken", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: component.name,
+                        length_mm: component.length_mm ?? null,
+                        width_mm: component.width_mm ?? null,
+                        height_mm: component.height_mm ?? null,
+                        zustand: conditionSelect.value,
+                    }),
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || `HTTP ${response.status}`);
+                }
+                captureStatus.textContent = data.message || "Etikett wurde an den Drucker gesendet.";
+            } catch (error) {
+                captureStatus.textContent = `Drucken fehlgeschlagen: ${error.message || error}`;
+            } finally {
+                printButton.disabled = false;
+            }
         });
 
         captureButton.addEventListener("click", erfassen);

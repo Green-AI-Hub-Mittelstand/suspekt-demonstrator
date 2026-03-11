@@ -22,6 +22,7 @@ from demonstrator.apps.common import build_app, mjpeg_stream_generator, register
 from demonstrator.vision.aruco import detect_aruco_markers_with_tracking, calculate_dimensions
 from demonstrator.vision.camera import FrameGrabber, OAK1MaxCamera, USBWebcamCamera, list_oak_devices
 from demonstrator.config.camera_ids import LEFT_CAMERA_SERIAL, RIGHT_CAMERA_SERIAL
+from niimprint import PrinterClient, SerialTransport
 from demonstrator.config.settings import (
     ARUCO_ENABLED,
     ARUCO_SKIP_FRAMES,
@@ -540,6 +541,23 @@ def _build_label_image(
     return label
 
 
+def _prepare_label_for_niimprint(label_image: Image.Image, max_width_px: int = 384) -> Image.Image:
+    if label_image.width <= max_width_px:
+        return label_image
+    scale = max_width_px / float(label_image.width)
+    resized_height = max(1, int(round(label_image.height * scale)))
+    return label_image.resize((max_width_px, resized_height), Image.Resampling.LANCZOS)
+
+
+def _print_label_via_usb(detection: Dict[str, Optional[float]], zustand: str) -> None:
+    qr_payload = _build_qr_payload(detection, zustand=zustand)
+    qr_image = _build_qr_image(qr_payload)
+    label_image = _build_label_image(detection, qr_image, zustand=zustand)
+    printable_image = _prepare_label_for_niimprint(label_image)
+    printer = PrinterClient(SerialTransport(port="auto"))
+    printer.print_image(printable_image, density=5)
+
+
 # ============================================
 # SegmentCamera (Masken-Inference + FPS)
 # ============================================
@@ -837,6 +855,14 @@ class CameraMappingUpdate(BaseModel):
     right_serial: str
 
 
+class PrintRequest(BaseModel):
+    name: str
+    zustand: str = "Gut"
+    length_mm: Optional[float] = None
+    width_mm: Optional[float] = None
+    height_mm: Optional[float] = None
+
+
 # ============================================
 # FASTAPI-Routen
 # ============================================
@@ -887,6 +913,24 @@ def label_preview(
     label_image = _build_label_image(detection, qr_image, zustand=zustand)
     return {
         "etikett_data_url": _image_to_data_url(label_image),
+    }
+
+
+@app.post("/api/drucken")
+def print_label(request: PrintRequest) -> Dict[str, object]:
+    detection = {
+        "name": request.name,
+        "length_mm": request.length_mm,
+        "width_mm": request.width_mm,
+        "height_mm": request.height_mm,
+    }
+    try:
+        _print_label_via_usb(detection, zustand=request.zustand)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Druck fehlgeschlagen: {exc}") from exc
+    return {
+        "success": True,
+        "message": f"Etikett fuer {request.name} wurde an den Drucker gesendet.",
     }
 
 
