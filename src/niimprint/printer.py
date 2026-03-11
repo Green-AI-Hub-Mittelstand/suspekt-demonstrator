@@ -166,24 +166,15 @@ class PrinterClient:
 
     def get_info(self, key):
         if packet := self._transceive(RequestCodeEnum.GET_INFO, bytes((key,)), key):
-            
-            if key == InfoEnum.DEVICESERIAL:
-                return packet.data.hex()
-            elif key == InfoEnum.SOFTVERSION:
-                return _packet_to_int(packet) / 100
-            elif key == InfoEnum.HARDVERSION:
-                return _packet_to_int(packet) / 100
-            else:
-                return _packet_to_int(packet)
-            # match key:
-            #     case InfoEnum.DEVICESERIAL:
-            #         return packet.data.hex()
-            #     case InfoEnum.SOFTVERSION:
-            #         return _packet_to_int(packet) / 100
-            #     case InfoEnum.HARDVERSION:
-            #         return _packet_to_int(packet) / 100
-            #     case _:
-            #         return _packet_to_int(packet)
+            match key:
+                case InfoEnum.DEVICESERIAL:
+                    return packet.data.hex()
+                case InfoEnum.SOFTVERSION:
+                    return _packet_to_int(packet) / 100
+                case InfoEnum.HARDVERSION:
+                    return _packet_to_int(packet) / 100
+                case _:
+                    return _packet_to_int(packet)
         else:
             return None
 
@@ -223,45 +214,26 @@ class PrinterClient:
         paperstate = None
         rfidreadstate = None
 
-        if len(packet.data) == 20:
-            paperstate = packet.data[18]
-            rfidreadstate = packet.data[19]
-        elif len(packet.data) == 13:
-            closingstate = packet.data[9]
-            powerlevel = packet.data[10]
-            paperstate = packet.data[11]
-            rfidreadstate = packet.data[12]
-        elif len(packet.data) == 19:
-            closingstate = packet.data[15]
-            powerlevel = packet.data[16]
-            paperstate = packet.data[17]
-            rfidreadstate = packet.data[18]
-        elif len(packet.data) == 10:
-            closingstate = packet.data[8]
-            powerlevel = packet.data[9]
-            rfidreadstate = packet.data[8]
-        elif len(packet.data) == 9:
-            closingstate = packet.data[8]
-        # match len(packet.data):
-        #     case 20:
-        #         paperstate = packet.data[18]
-        #         rfidreadstate = packet.data[19]
-        #     case 13:
-        #         closingstate = packet.data[9]
-        #         powerlevel = packet.data[10]
-        #         paperstate = packet.data[11]
-        #         rfidreadstate = packet.data[12]
-        #     case 19:
-        #         closingstate = packet.data[15]
-        #         powerlevel = packet.data[16]
-        #         paperstate = packet.data[17]
-        #         rfidreadstate = packet.data[18]
-        #     case 10:
-        #         closingstate = packet.data[8]
-        #         powerlevel = packet.data[9]
-        #         rfidreadstate = packet.data[8]
-        #     case 9:
-        #         closingstate = packet.data[8]
+        match len(packet.data):
+            case 20:
+                paperstate = packet.data[18]
+                rfidreadstate = packet.data[19]
+            case 13:
+                closingstate = packet.data[9]
+                powerlevel = packet.data[10]
+                paperstate = packet.data[11]
+                rfidreadstate = packet.data[12]
+            case 19:
+                closingstate = packet.data[15]
+                powerlevel = packet.data[16]
+                paperstate = packet.data[17]
+                rfidreadstate = packet.data[18]
+            case 10:
+                closingstate = packet.data[8]
+                powerlevel = packet.data[9]
+                rfidreadstate = packet.data[8]
+            case 9:
+                closingstate = packet.data[8]
 
         return {
             "closingstate": closingstate,
