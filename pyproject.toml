@@ -18,6 +18,10 @@ dependencies = [
     "opencv-python>=4.10,<5.0",
     "numpy==1.23.5",
     "python-multipart>=0.0.20,<1.0",
+    "Pillow>=10.1.0,<11.0.0",
+    "pyserial>=3.5,<3.6",
+    "click>=8.1.7,<8.2",
+    "qrcode>=8.2,<8.3"
 ]
 
 [project.optional-dependencies]
@@ -28,9 +32,11 @@ dev = ["pytest>=8.3,<9.0"]
 demonstrator = "demonstrator.cli:main"
 demonstrator-inventarization = "demonstrator.apps.inventarization.app:main"
 demonstrator-gamification = "demonstrator.apps.gamification.app:main"
+niimprint = "niimprint.__main__:print_cmd"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["demonstrator*", "niimprint*"]
 
 [tool.setuptools.package-data]
 demonstrator = ["profiles/*.yaml", "templates/**/*.html", "static/**/*", "models/*.engine", "models/*.pt"]
