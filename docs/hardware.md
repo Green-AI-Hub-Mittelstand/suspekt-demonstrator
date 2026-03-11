@@ -15,6 +15,7 @@ The setup consists of:
 - one OBSBOT Meet 2 camera mounted in the center/top position
 - one monitor for the live UI and detection output
 - one NIIMBOT B1 series smart label printer connected over Bluetooth for QR-code label printing
+    - Label size: 50x30
 
 The left and right cameras observe the component from the sides. The center camera observes the component from above/front and provides the main detection view. The label printer is used after detection to print QR-code labels for the detected components.
 
