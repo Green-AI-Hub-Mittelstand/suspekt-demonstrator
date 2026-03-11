@@ -1,15 +1,20 @@
 # main.py
 
+import base64
+import io
 import json
 import threading
 import time
+from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
+import qrcode
 from ultralytics import YOLO
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
+from PIL import Image, ImageDraw, ImageFont
 from pydantic import BaseModel
 
 from demonstrator.apps.common import build_app, mjpeg_stream_generator, register_video_route
@@ -393,6 +398,135 @@ class DetectCamera(FrameGrabber):
         with self._lock:
             return None if self._roi_rel is None else tuple(self._roi_rel)
 
+    def get_current_detections(self) -> List[Dict[str, Optional[float]]]:
+        with self._lock:
+            now = time.time()
+            if (
+                self._last_infer_time <= 0.0
+                or (now - self._last_infer_time) > self._persist_seconds
+            ):
+                return []
+            boxes = self._cached_boxes.copy()
+            scores = self._cached_scores.copy()
+            classes = self._cached_classes.copy()
+            ratio = self.last_known_ratio
+            roi_pixels = self._roi_pixels
+
+        detections: List[Dict[str, Optional[float]]] = []
+        for index, ((x1, y1, x2, y2), conf, cls_id) in enumerate(zip(boxes, scores, classes), start=1):
+            if roi_pixels:
+                rx1, ry1, rx2, ry2 = roi_pixels
+                cx = 0.5 * (x1 + x2)
+                cy = 0.5 * (y1 + y2)
+                if cx < rx1 or cx > rx2 or cy < ry1 or cy > ry2:
+                    continue
+
+            try:
+                class_name = self.model.names[cls_id]
+            except (KeyError, IndexError, TypeError):
+                class_name = f"class{cls_id}"
+
+            normalized_class = (
+                str(class_name)
+                .lower()
+                .replace("-", "")
+                .replace("_", "")
+                .replace(" ", "")
+            )
+            if normalized_class in {"nubsup", "nubsdown"}:
+                continue
+
+            width_mm: Optional[float] = None
+            height_mm: Optional[float] = None
+            length_mm: Optional[float] = None
+            if ratio is not None:
+                width_mm, height_mm = calculate_dimensions([x1, y1, x2, y2], ratio)
+                if width_mm is not None and height_mm is not None:
+                    length_mm = max(width_mm, height_mm)
+
+            detections.append(
+                {
+                    "id": index,
+                    "name": str(class_name),
+                    "confidence": round(float(conf), 3),
+                    "width_mm": None if width_mm is None else round(float(width_mm), 1),
+                    "height_mm": None if height_mm is None else round(float(height_mm), 1),
+                    "length_mm": None if length_mm is None else round(float(length_mm), 1),
+                }
+            )
+
+        detections.sort(
+            key=lambda item: (
+                item["name"].lower(),
+                -(item["length_mm"] or 0.0),
+                -item["confidence"],
+            )
+        )
+        return detections
+
+
+def _image_to_data_url(image: Image.Image) -> str:
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
+
+
+def _build_qr_payload(detection: Dict[str, Optional[float]]) -> str:
+    payload = {
+        "typ": "komponente",
+        "name": detection["name"],
+        "laenge_mm": detection["length_mm"],
+        "breite_mm": detection["width_mm"],
+        "hoehe_mm": detection["height_mm"],
+        "erfasst_am": datetime.now().isoformat(timespec="seconds"),
+    }
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def _build_qr_image(payload: str) -> Image.Image:
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=8,
+        border=2,
+    )
+    qr.add_data(payload)
+    qr.make(fit=True)
+    return qr.make_image(fill_color="black", back_color="white").convert("RGB")
+
+
+def _build_label_image(detection: Dict[str, Optional[float]], qr_image: Image.Image) -> Image.Image:
+    # Vorschau fuer ein 50x30 mm Etikett bei 300 dpi.
+    label_width_px = 591
+    label_height_px = 354
+    label = Image.new("RGB", (label_width_px, label_height_px), "white")
+    draw = ImageDraw.Draw(label)
+    font = ImageFont.load_default()
+
+    qr_size = 220
+    qr_resized = qr_image.resize((qr_size, qr_size))
+    qr_x = 18
+    qr_y = (label_height_px - qr_size) // 2
+    label.paste(qr_resized, (qr_x, qr_y))
+
+    text_x = qr_x + qr_size + 24
+    text_y = 36
+    line_gap = 18
+    lines = [
+        "Komponente",
+        str(detection["name"]),
+        f"Laenge: {detection['length_mm']:.1f} mm" if detection["length_mm"] is not None else "Laenge: n. v.",
+        f"Breite: {detection['width_mm']:.1f} mm" if detection["width_mm"] is not None else "Breite: n. v.",
+        "Format: 50 x 30 mm",
+    ]
+    for line in lines:
+        draw.text((text_x, text_y), line, fill="black", font=font)
+        text_y += 32 if line in {"Komponente", str(detection["name"])} else line_gap + 12
+
+    draw.rectangle((12, 12, label_width_px - 13, label_height_px - 13), outline="black", width=2)
+    return label
+
 
 # ============================================
 # SegmentCamera (Masken-Inference + FPS)
@@ -700,6 +834,30 @@ class ROIUpdate(BaseModel):
 @app.get("/", response_class=Response)
 def index(request: Request) -> Response:
     return templates.TemplateResponse("normal_index.html", {"request": request})
+
+
+@app.get("/api/erfassung")
+def capture_components() -> Dict[str, object]:
+    detections = usb_center_detect.get_current_detections()
+    enriched: List[Dict[str, object]] = []
+    for detection in detections:
+        qr_payload = _build_qr_payload(detection)
+        qr_image = _build_qr_image(qr_payload)
+        label_image = _build_label_image(detection, qr_image)
+        enriched.append(
+            {
+                **detection,
+                "qr_payload": qr_payload,
+                "qr_code_data_url": _image_to_data_url(qr_image),
+                "etikett_data_url": _image_to_data_url(label_image),
+            }
+        )
+
+    return {
+        "komponenten": enriched,
+        "anzahl": len(enriched),
+        "erfasst_am": datetime.now().isoformat(timespec="seconds"),
+    }
 
 
 @app.get("/video_left")

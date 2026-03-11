@@ -1,45 +1,104 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8" />
-    <title>Three-Camera View</title>
+    <title>Komponentenerfassung</title>
     <style>
-        /* --- Grundlegende Reset-Stile --- */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        html, body {
-            height: 100%;
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
+        :root {
+            --bg: #ececec;
+            --panel: #ffffff;
+            --line: #d8dee6;
+            --text: #1c2733;
+            --muted: #5f6d7b;
+            --brand: #0b7dda;
+            --brand-dark: #095c9c;
+            --soft: #eef6ff;
+            --shadow: 0 12px 30px rgba(14, 24, 37, 0.08);
         }
-
-        /* --- Kamera-Container --- */
+        html, body {
+            min-height: 100%;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(180deg, #f4f4f4 0%, #e8eaed 100%);
+            color: var(--text);
+        }
+        .logo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            background-color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            gap: 24px;
+        }
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        .logo-group img {
+            height: 60px;
+            max-width: 200px;
+            object-fit: contain;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header-button,
+        .capture-button {
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: none;
+            background-color: var(--brand);
+            color: #ffffff;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+        .header-button:hover,
+        .capture-button:hover:not(:disabled) {
+            background-color: var(--brand-dark);
+            transform: translateY(-1px);
+        }
+        .capture-button:disabled {
+            opacity: 0.65;
+            cursor: wait;
+        }
+        .page {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
         .container {
             display: grid;
             grid-template-columns: 1fr 1.7fr 1fr;
             align-items: stretch;
             gap: 16px;
-            padding: 16px 20px;
-            max-width: 1600px;
-            margin: 0 auto;
+        }
+        .camera-panel,
+        .capture-panel,
+        .details-card,
+        .preview-card {
+            background-color: var(--panel);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
         }
         .camera-panel {
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: 10px;
-            height: 100%;
-        }
-        .camera-panel.center-camera {
-            min-width: 0;
-        }
-        .camera-panel.side-camera {
             min-width: 0;
         }
         .camera-panel h2 {
@@ -54,7 +113,7 @@
             width: 100%;
             height: 430px;
             border: 2px solid #ddd;
-            border-radius: 4px;
+            border-radius: 8px;
             background-color: #f7f7f7;
             display: flex;
             align-items: center;
@@ -69,11 +128,144 @@
             object-fit: contain;
             image-rendering: auto;
         }
-
-        /* --- Responsive Layout --- */
+        .capture-panel {
+            margin-top: 22px;
+            padding: 24px;
+        }
+        .capture-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .capture-title h2 {
+            font-size: 1.6rem;
+            margin-bottom: 6px;
+        }
+        .capture-title p {
+            color: var(--muted);
+            max-width: 720px;
+            line-height: 1.5;
+        }
+        .capture-status {
+            min-height: 24px;
+            margin-bottom: 18px;
+            color: var(--muted);
+            font-size: 0.98rem;
+        }
+        .capture-controls {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .dropdown-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 320px;
+        }
+        .dropdown-wrap label {
+            font-size: 0.92rem;
+            color: var(--muted);
+        }
+        .dropdown-wrap select {
+            min-height: 46px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: #fff;
+            padding: 0 14px;
+            font-size: 1rem;
+            color: var(--text);
+        }
+        .capture-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+            gap: 18px;
+            align-items: start;
+        }
+        .details-card,
+        .preview-card {
+            padding: 18px;
+            border: 1px solid rgba(11, 125, 218, 0.08);
+        }
+        .card-title {
+            font-size: 1.05rem;
+            margin-bottom: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead th {
+            text-align: left;
+            font-size: 0.9rem;
+            color: var(--muted);
+            background: var(--soft);
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line);
+        }
+        tbody td {
+            padding: 14px;
+            border-bottom: 1px solid #edf1f4;
+            vertical-align: middle;
+        }
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .qr-thumb {
+            width: 88px;
+            height: 88px;
+            object-fit: contain;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: #fff;
+            padding: 4px;
+        }
+        .label-preview {
+            width: 100%;
+            aspect-ratio: 50 / 30;
+            object-fit: contain;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 10px;
+        }
+        .preview-meta {
+            margin-top: 12px;
+            display: grid;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+        .payload-box {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            background: #f6f8fa;
+            border: 1px solid var(--line);
+            color: var(--text);
+            font-size: 0.9rem;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+        .empty-state {
+            padding: 28px;
+            border-radius: 14px;
+            background: #f8fafc;
+            border: 1px dashed #c8d4df;
+            color: var(--muted);
+            text-align: center;
+        }
         @media (max-width: 1200px) {
             .container {
                 grid-template-columns: 1fr 1.45fr 1fr;
+            }
+            .capture-grid {
+                grid-template-columns: 1fr;
             }
         }
         @media (max-width: 900px) {
@@ -83,53 +275,13 @@
             .camera-media {
                 height: 360px;
             }
-        }
-
-        /* --- Logo Header Styles --- */
-        .logo-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            background-color: #ffffff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            gap: 24px;
-        }
-        .logo-group {
-            display: flex;
-            align-items: center;
-            gap: 40px;
-        }
-        .logo-group img {
-            height: 60px;
-            max-width: 200px;
-            object-fit: contain;
-        }
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .header-button {
-            padding: 12px 20px;
-            border-radius: 8px;
-            background-color: #0b7dda;
-            color: #ffffff;
-            font-size: 1rem;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s ease;
-        }
-        .header-button:hover {
-            background-color: #095c9c;
+            .dropdown-wrap {
+                min-width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Logo Header -->
     <div class="logo-header">
         <div class="logo-group">
             <img src="/static/system-180-logo.jpg" alt="System 180 Logo">
@@ -141,32 +293,181 @@
         </div>
     </div>
 
-    <!-- Three-Camera Panels -->
-    <div class="container">
-        <!-- Left OAK-1 Max -->
-        <div class="camera-panel side-camera">
-            <h2>OAK-1 Max (Links)</h2>
-            <div class="camera-media">
-                <img src="/video_left" alt="Left OAK-1 Max Stream" />
+    <main class="page">
+        <div class="container">
+            <div class="camera-panel side-camera">
+                <h2>OAK-1 Max (Links)</h2>
+                <div class="camera-media">
+                    <img src="/video_left" alt="Linker OAK-1-Max-Stream" />
+                </div>
+            </div>
+
+            <div class="camera-panel center-camera">
+                <h2>Logitech Webcam mit Aruco-Messung</h2>
+                <div class="camera-media">
+                    <img src="/video_center" alt="Mittlerer Kamera-Stream" />
+                </div>
+            </div>
+
+            <div class="camera-panel side-camera">
+                <h2>OAK-1 Max (Rechts)</h2>
+                <div class="camera-media">
+                    <img src="/video_right" alt="Rechter OAK-1-Max-Stream" />
+                </div>
             </div>
         </div>
 
-        <!-- Center USB Webcam -->
-        <div class="camera-panel center-camera">
-            <h2>Logitech Webcam mit Aruco-Messung</h2>
-            <div class="camera-media">
-                <img src="/video_center" alt="Center USB Webcam Stream" />
+        <section class="capture-panel">
+            <div class="capture-header">
+                <div class="capture-title">
+                    <h2>Komponente erfassen</h2>
+                    <p>
+                        Nach dem Klick auf <strong>Erfassen</strong> werden die aktuell erkannten Komponenten unter der mittleren Kamera geladen.
+                        Bei mehreren Treffern kann die gewünschte Komponente über das Auswahlfeld gewählt werden.
+                    </p>
+                </div>
+                <button id="capture-button" class="capture-button" type="button">Erfassen</button>
             </div>
-        </div>
 
-        <!-- Right OAK-1 Max -->
-        <div class="camera-panel side-camera">
-            <h2>OAK-1 Max (Rechts)</h2>
-            <div class="camera-media">
-                <img src="/video_right" alt="Right OAK-1 Max Stream" />
+            <div id="capture-status" class="capture-status">Noch keine Erfassung gestartet.</div>
+
+            <div class="capture-controls">
+                <div class="dropdown-wrap">
+                    <label for="component-select">Erkannte Komponente auswählen</label>
+                    <select id="component-select" disabled>
+                        <option>Bitte zuerst erfassen</option>
+                    </select>
+                </div>
             </div>
-        </div>
-    </div>
 
+            <div class="capture-grid">
+                <div class="details-card">
+                    <h3 class="card-title">Erfasste Komponente</h3>
+                    <div id="details-content" class="empty-state">
+                        Noch keine Komponenten erfasst.
+                    </div>
+                </div>
+
+                <div class="preview-card">
+                    <h3 class="card-title">Etikett-Vorschau 50 x 30 mm</h3>
+                    <div id="preview-content" class="empty-state">
+                        Nach der Erfassung erscheint hier die QR-Code- und Etikett-Vorschau.
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const captureButton = document.getElementById("capture-button");
+        const componentSelect = document.getElementById("component-select");
+        const captureStatus = document.getElementById("capture-status");
+        const detailsContent = document.getElementById("details-content");
+        const previewContent = document.getElementById("preview-content");
+
+        let components = [];
+
+        function formatMillimeter(value) {
+            return typeof value === "number" ? `${value.toFixed(1)} mm` : "n. v.";
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll("\"", "&quot;")
+                .replaceAll("'", "&#39;");
+        }
+
+        function renderEmptyState(message) {
+            detailsContent.innerHTML = `<div class="empty-state">${escapeHtml(message)}</div>`;
+            previewContent.innerHTML = '<div class="empty-state">Nach der Erfassung erscheint hier die QR-Code- und Etikett-Vorschau.</div>';
+        }
+
+        function renderComponent(index) {
+            const component = components[index];
+            if (!component) {
+                renderEmptyState("Keine Komponente ausgewaehlt.");
+                return;
+            }
+
+            detailsContent.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Komponente</th>
+                            <th>Laenge</th>
+                            <th>QR-Code</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${escapeHtml(component.name)}</td>
+                            <td>${escapeHtml(formatMillimeter(component.length_mm))}</td>
+                            <td><img class="qr-thumb" src="${component.qr_code_data_url}" alt="QR-Code fuer ${escapeHtml(component.name)}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+
+            previewContent.innerHTML = `
+                <img class="label-preview" src="${component.etikett_data_url}" alt="Etikett-Vorschau fuer ${escapeHtml(component.name)}">
+                <div class="preview-meta">
+                    <div><strong>Komponente:</strong> ${escapeHtml(component.name)}</div>
+                    <div><strong>Laenge:</strong> ${escapeHtml(formatMillimeter(component.length_mm))}</div>
+                    <div><strong>Groesse:</strong> 50 x 30 mm</div>
+                </div>
+                <div class="payload-box"><strong>QR-Inhalt:</strong><br>${escapeHtml(component.qr_payload)}</div>
+            `;
+        }
+
+        async function erfassen() {
+            captureButton.disabled = true;
+            captureStatus.textContent = "Erfassung laeuft...";
+
+            try {
+                const response = await fetch("/api/erfassung");
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                components = Array.isArray(data.komponenten) ? data.komponenten : [];
+
+                if (!components.length) {
+                    componentSelect.disabled = true;
+                    componentSelect.innerHTML = "<option>Keine Komponente erkannt</option>";
+                    captureStatus.textContent = "Es wurde aktuell keine Komponente erkannt.";
+                    renderEmptyState("Es wurde aktuell keine Komponente erkannt.");
+                    return;
+                }
+
+                componentSelect.disabled = false;
+                componentSelect.innerHTML = components.map((component, index) => {
+                    const name = escapeHtml(component.name);
+                    const length = escapeHtml(formatMillimeter(component.length_mm));
+                    return `<option value="${index}">${name} - ${length}</option>`;
+                }).join("");
+
+                captureStatus.textContent = `${components.length} Komponente${components.length === 1 ? "" : "n"} erkannt. Auswahl aktualisiert.`;
+                componentSelect.value = "0";
+                renderComponent(0);
+            } catch (error) {
+                componentSelect.disabled = true;
+                componentSelect.innerHTML = "<option>Fehler bei der Erfassung</option>";
+                captureStatus.textContent = "Die Erfassung konnte nicht geladen werden.";
+                renderEmptyState("Die Erfassung konnte nicht geladen werden.");
+            } finally {
+                captureButton.disabled = false;
+            }
+        }
+
+        componentSelect.addEventListener("change", (event) => {
+            renderComponent(Number(event.target.value));
+        });
+
+        captureButton.addEventListener("click", erfassen);
+    </script>
 </body>
 </html>
