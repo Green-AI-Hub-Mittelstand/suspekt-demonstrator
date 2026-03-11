@@ -101,6 +101,14 @@
             opacity: 0.65;
             cursor: wait;
         }
+        .button-secondary {
+            background: #eef3f8;
+            color: var(--text);
+            border: 1px solid var(--line);
+        }
+        .header-button.button-secondary:hover {
+            background: #e2eaf3;
+        }
         .page {
             max-width: 1600px;
             margin: 0 auto;
@@ -246,6 +254,84 @@
             align-items: center;
             justify-content: center;
         }
+        .modal-shell {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 1000;
+        }
+        .modal-shell.is-open {
+            display: flex;
+        }
+        .modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 33, 0.36);
+            backdrop-filter: blur(2px);
+        }
+        .modal-card {
+            position: relative;
+            width: min(560px, 100%);
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 28px 60px rgba(14, 24, 37, 0.2);
+            padding: 24px;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        .modal-copy {
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 18px;
+        }
+        .camera-config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .camera-config-meta {
+            background: #f8fafc;
+            border: 1px solid #dbe3ec;
+            border-radius: 12px;
+            padding: 14px;
+            display: grid;
+            gap: 8px;
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+        }
+        .camera-config-status {
+            min-height: 22px;
+            margin-bottom: 18px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+        .camera-config-status.is-error {
+            color: #b42318;
+        }
+        .camera-config-status.is-success {
+            color: #067647;
+        }
+        .camera-config-status.is-warning {
+            color: #b54708;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
         @media (max-width: 1200px) {
             .container {
                 grid-template-columns: 1fr 1.45fr 1fr;
@@ -288,6 +374,12 @@
             .preview-card {
                 max-width: none;
             }
+            .camera-config-grid {
+                grid-template-columns: 1fr;
+            }
+            .modal-actions {
+                flex-direction: column-reverse;
+            }
         }
     </style>
 </head>
@@ -304,7 +396,7 @@
                 <div class="settings-title">Einstellungen</div>
                 <div class="settings-actions">
                     <a class="header-button" href="/roi">ROI</a>
-                    <button class="header-button" type="button">Kamera</button>
+                    <button id="camera-settings-button" class="header-button" type="button">Kamera</button>
                 </div>
             </div>
         </div>
@@ -373,6 +465,45 @@
         </section>
     </main>
 
+    <div id="camera-modal" class="modal-shell" aria-hidden="true">
+        <div class="modal-backdrop" data-close-camera-modal="true"></div>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="camera-modal-title">
+            <div class="modal-header">
+                <div id="camera-modal-title" class="modal-title">Kamera-Zuordnung</div>
+                <button id="camera-modal-close-top" class="header-button button-secondary" type="button">Schließen</button>
+            </div>
+            <p class="modal-copy">
+                Weise den beiden OAK-Kameras ihre physische Position zu. Die Änderung wird in
+                <code>config/config.json</code> gespeichert und nach dem nächsten App-Neustart aktiv.
+            </p>
+            <div class="camera-config-grid">
+                <div class="control-field">
+                    <label class="control-label" for="camera-left-select">Linke Kamera</label>
+                    <div class="dropdown-wrap">
+                        <select id="camera-left-select" aria-label="Linke Kamera auswählen"></select>
+                    </div>
+                </div>
+                <div class="control-field">
+                    <label class="control-label" for="camera-right-select">Rechte Kamera</label>
+                    <div class="dropdown-wrap">
+                        <select id="camera-right-select" aria-label="Rechte Kamera auswählen"></select>
+                    </div>
+                </div>
+            </div>
+            <div class="camera-config-meta">
+                <div>Aktiv links: <strong id="camera-active-left">-</strong></div>
+                <div>Aktiv rechts: <strong id="camera-active-right">-</strong></div>
+                <div>Gespeichert links: <strong id="camera-saved-left">-</strong></div>
+                <div>Gespeichert rechts: <strong id="camera-saved-right">-</strong></div>
+            </div>
+            <div id="camera-config-status" class="camera-config-status">Lade Kamera-Konfiguration…</div>
+            <div class="modal-actions">
+                <button id="camera-modal-close" class="header-button button-secondary" type="button">Abbrechen</button>
+                <button id="camera-save-button" class="header-button" type="button">Speichern</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const captureButton = document.getElementById("capture-button");
         const printButton = document.getElementById("print-button");
@@ -380,6 +511,18 @@
         const conditionSelect = document.getElementById("condition-select");
         const captureStatus = document.getElementById("capture-status");
         const previewContent = document.getElementById("preview-content");
+        const cameraSettingsButton = document.getElementById("camera-settings-button");
+        const cameraModal = document.getElementById("camera-modal");
+        const cameraModalClose = document.getElementById("camera-modal-close");
+        const cameraModalCloseTop = document.getElementById("camera-modal-close-top");
+        const cameraLeftSelect = document.getElementById("camera-left-select");
+        const cameraRightSelect = document.getElementById("camera-right-select");
+        const cameraSaveButton = document.getElementById("camera-save-button");
+        const cameraConfigStatus = document.getElementById("camera-config-status");
+        const cameraActiveLeft = document.getElementById("camera-active-left");
+        const cameraActiveRight = document.getElementById("camera-active-right");
+        const cameraSavedLeft = document.getElementById("camera-saved-left");
+        const cameraSavedRight = document.getElementById("camera-saved-right");
 
         let components = [];
 
@@ -397,7 +540,103 @@
         }
 
         function renderEmptyState(message) {
-            previewContent.innerHTML = '<div class="empty-state">Keine Etikett-Vorschau.</div>';
+            previewContent.innerHTML = `<div class="empty-state">${escapeHtml(message || "Keine Etikett-Vorschau.")}</div>`;
+        }
+
+        function setCameraConfigStatus(message, variant = "") {
+            cameraConfigStatus.textContent = message;
+            cameraConfigStatus.className = "camera-config-status";
+            if (variant) {
+                cameraConfigStatus.classList.add(`is-${variant}`);
+            }
+        }
+
+        function renderCameraOptions(serials, selectedLeft, selectedRight) {
+            const options = serials.map((serial) => {
+                const safeSerial = escapeHtml(serial);
+                return `<option value="${safeSerial}">${safeSerial}</option>`;
+            }).join("");
+            cameraLeftSelect.innerHTML = options;
+            cameraRightSelect.innerHTML = options;
+            cameraLeftSelect.value = selectedLeft;
+            cameraRightSelect.value = selectedRight;
+        }
+
+        function renderCameraConfig(data) {
+            renderCameraOptions(
+                Array.isArray(data.available_serials) ? data.available_serials : [],
+                data.saved_mapping?.left || "",
+                data.saved_mapping?.right || ""
+            );
+            cameraActiveLeft.textContent = data.active_mapping?.left || "-";
+            cameraActiveRight.textContent = data.active_mapping?.right || "-";
+            cameraSavedLeft.textContent = data.saved_mapping?.left || "-";
+            cameraSavedRight.textContent = data.saved_mapping?.right || "-";
+            if (data.restart_required) {
+                setCameraConfigStatus("Konfiguration gespeichert. Für die neue Zuordnung ist ein App-Neustart nötig.", "warning");
+            } else {
+                setCameraConfigStatus("Aktive und gespeicherte Kamera-Zuordnung sind identisch.", "success");
+            }
+        }
+
+        async function loadCameraConfig() {
+            setCameraConfigStatus("Lade Kamera-Konfiguration…");
+            try {
+                const response = await fetch("/camera/config");
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                renderCameraConfig(data);
+            } catch (error) {
+                setCameraConfigStatus("Kamera-Konfiguration konnte nicht geladen werden.", "error");
+            }
+        }
+
+        function openCameraModal() {
+            cameraModal.classList.add("is-open");
+            cameraModal.setAttribute("aria-hidden", "false");
+            loadCameraConfig();
+        }
+
+        function closeCameraModal() {
+            cameraModal.classList.remove("is-open");
+            cameraModal.setAttribute("aria-hidden", "true");
+        }
+
+        async function saveCameraConfig() {
+            const leftSerial = cameraLeftSelect.value;
+            const rightSerial = cameraRightSelect.value;
+            if (!leftSerial || !rightSerial) {
+                setCameraConfigStatus("Bitte beide Kameras auswählen.", "error");
+                return;
+            }
+            if (leftSerial === rightSerial) {
+                setCameraConfigStatus("Links und rechts müssen unterschiedliche Kameras sein.", "error");
+                return;
+            }
+
+            cameraSaveButton.disabled = true;
+            setCameraConfigStatus("Speichere Kamera-Zuordnung…");
+            try {
+                const response = await fetch("/camera/config", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        left_serial: leftSerial,
+                        right_serial: rightSerial,
+                    }),
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || `HTTP ${response.status}`);
+                }
+                renderCameraConfig(data);
+            } catch (error) {
+                setCameraConfigStatus(`Speichern fehlgeschlagen: ${error.message || error}`, "error");
+            } finally {
+                cameraSaveButton.disabled = false;
+            }
         }
 
         async function renderComponent(index) {
@@ -485,6 +724,20 @@
         });
 
         captureButton.addEventListener("click", erfassen);
+        cameraSettingsButton.addEventListener("click", openCameraModal);
+        cameraModalClose.addEventListener("click", closeCameraModal);
+        cameraModalCloseTop.addEventListener("click", closeCameraModal);
+        cameraSaveButton.addEventListener("click", saveCameraConfig);
+        cameraModal.addEventListener("click", (event) => {
+            if (event.target instanceof HTMLElement && event.target.dataset.closeCameraModal === "true") {
+                closeCameraModal();
+            }
+        });
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && cameraModal.classList.contains("is-open")) {
+                closeCameraModal();
+            }
+        });
     </script>
 </body>
 </html>

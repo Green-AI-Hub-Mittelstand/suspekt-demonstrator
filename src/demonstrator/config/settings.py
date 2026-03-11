@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 # ============================================================
 # PATHS
@@ -10,7 +11,9 @@ from typing import Dict, Iterable, List, Optional, Tuple
 PROJECT_ROOT: Path = Path(__file__).resolve().parents[3]
 
 CONFIG_DIR: Path = PROJECT_ROOT / "config"
-ROI_CONFIG_PATH: Path = CONFIG_DIR / "center_roi.json"
+CONFIG_PATH: Path = CONFIG_DIR / "config.json"
+LEGACY_ROI_CONFIG_PATH: Path = CONFIG_DIR / "center_roi.json"
+ROI_CONFIG_PATH: Path = CONFIG_PATH
 MODELS_DIR: Path = PROJECT_ROOT / "models"
 
 
@@ -158,3 +161,106 @@ def normalise_roi_tuple(value: Optional[Iterable[float]]) -> Optional[Tuple[floa
     if x2 <= x1 or y2 <= y1:
         return None
     return (x1, y1, x2, y2)
+
+
+def load_runtime_config() -> Dict[str, Any]:
+    data: Dict[str, Any] = {}
+    if CONFIG_PATH.exists():
+        try:
+            with CONFIG_PATH.open("r", encoding="utf-8") as file:
+                loaded = json.load(file)
+            if isinstance(loaded, dict):
+                data = loaded
+        except Exception:
+            data = {}
+
+    if "center_camera_roi" not in data and LEGACY_ROI_CONFIG_PATH.exists():
+        try:
+            with LEGACY_ROI_CONFIG_PATH.open("r", encoding="utf-8") as file:
+                legacy = json.load(file)
+            if isinstance(legacy, dict) and isinstance(legacy.get("roi"), (list, tuple)):
+                data["center_camera_roi"] = legacy["roi"]
+        except Exception:
+            pass
+
+    return data
+
+
+def save_runtime_config(config: Dict[str, Any]) -> None:
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    with CONFIG_PATH.open("w", encoding="utf-8") as file:
+        json.dump(config, file, indent=2)
+    if LEGACY_ROI_CONFIG_PATH.exists():
+        try:
+            LEGACY_ROI_CONFIG_PATH.unlink()
+        except OSError:
+            pass
+
+
+def get_persisted_center_roi() -> Optional[Tuple[float, float, float, float]]:
+    config = load_runtime_config()
+    return normalise_roi_tuple(config.get("center_camera_roi"))
+
+
+def persist_center_roi(roi: Optional[Tuple[float, float, float, float]]) -> None:
+    config = load_runtime_config()
+    if roi is None:
+        config.pop("center_camera_roi", None)
+    else:
+        config["center_camera_roi"] = list(roi)
+    save_runtime_config(config)
+
+
+def get_persisted_side_camera_mapping() -> Tuple[str, str]:
+    config = load_runtime_config()
+    mapping = config.get("side_camera_mapping")
+    if not isinstance(mapping, dict):
+        return ("", "")
+    left = mapping.get("left")
+    right = mapping.get("right")
+    return (
+        left.strip() if isinstance(left, str) else "",
+        right.strip() if isinstance(right, str) else "",
+    )
+
+
+def persist_side_camera_mapping(left_serial: str, right_serial: str) -> None:
+    config = load_runtime_config()
+    config["side_camera_mapping"] = {
+        "left": left_serial.strip(),
+        "right": right_serial.strip(),
+    }
+    save_runtime_config(config)
+
+
+def resolve_side_camera_serials(
+    available_serials: Iterable[str],
+    fallback_left_serial: str = "",
+    fallback_right_serial: str = "",
+) -> Tuple[str, str]:
+    serials = [serial for serial in available_serials if isinstance(serial, str) and serial]
+    if len(serials) < 2:
+        raise RuntimeError("Weniger als zwei OAK-1 Max Kameras gefunden. Bitte zwei anschließen.")
+
+    persisted_left, persisted_right = get_persisted_side_camera_mapping()
+    if (
+        persisted_left
+        and persisted_right
+        and persisted_left != persisted_right
+        and persisted_left in serials
+        and persisted_right in serials
+    ):
+        return persisted_left, persisted_right
+
+    fallback_left_serial = fallback_left_serial.strip()
+    fallback_right_serial = fallback_right_serial.strip()
+    if (
+        fallback_left_serial
+        and fallback_right_serial
+        and fallback_left_serial != fallback_right_serial
+        and fallback_left_serial in serials
+        and fallback_right_serial in serials
+    ):
+        return fallback_left_serial, fallback_right_serial
+
+    return serials[0], serials[1]

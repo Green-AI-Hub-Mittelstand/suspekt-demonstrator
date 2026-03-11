@@ -2,7 +2,6 @@
 
 import base64
 import io
-import json
 import threading
 import time
 from datetime import datetime
@@ -38,7 +37,6 @@ from demonstrator.config.settings import (
     OAK_MANUAL_EXPOSURE_US,
     OAK_MANUAL_ISO,
     OAK_SHARPNESS,
-    ROI_CONFIG_PATH,
     SKIP_FRAMES,
     USB_CAPTURE_FPS,
     USB_CAPTURE_HEIGHT,
@@ -52,7 +50,12 @@ from demonstrator.config.settings import (
     YOLO_IOU_THRESH,
     YOLO_MAX_DET,
     YOLO_MODEL_INPUT_SIZE,
+    get_persisted_center_roi,
+    get_persisted_side_camera_mapping,
     normalise_roi_tuple,
+    persist_center_roi,
+    persist_side_camera_mapping,
+    resolve_side_camera_serials,
 )
 # ============================================
 # FASTAPI-Setup
@@ -60,36 +63,8 @@ from demonstrator.config.settings import (
 app, templates, video_dir = build_app(log_prefix="Normal")
 register_video_route(app, video_dir, log_prefix="normal")
 
-
-def _load_persisted_roi() -> Optional[Tuple[float, float, float, float]]:
-    if not ROI_CONFIG_PATH.exists():
-        return None
-    try:
-        with ROI_CONFIG_PATH.open("r", encoding="utf-8") as file:
-            data = json.load(file)
-        roi_value = data.get("roi")
-        if not isinstance(roi_value, (list, tuple)):
-            return None
-        return normalise_roi_tuple(roi_value)
-    except Exception:
-        return None
-
-
-def _persist_roi(roi: Optional[Tuple[float, float, float, float]]) -> None:
-    if roi is None:
-        try:
-            if ROI_CONFIG_PATH.exists():
-                ROI_CONFIG_PATH.unlink()
-        except OSError:
-            pass
-        return
-    ROI_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with ROI_CONFIG_PATH.open("w", encoding="utf-8") as file:
-        json.dump({"roi": list(roi)}, file)
-
-
 def _initial_center_roi() -> Optional[Tuple[float, float, float, float]]:
-    persisted = _load_persisted_roi()
+    persisted = get_persisted_center_roi()
     if persisted is not None:
         return persisted
     return normalise_roi_tuple(DEFAULT_CENTER_CAMERA_ROI_REL)
@@ -766,19 +741,11 @@ class SegmentCamera(FrameGrabber):
 
 oak_serials = list_oak_devices()
 print(f"OAK Serials: {oak_serials}")
-if len(oak_serials) < 2:
-    raise RuntimeError("Weniger als zwei OAK-1 Max Kameras gefunden. Bitte zwei anschließen.")
-
-if LEFT_CAMERA_SERIAL in oak_serials and RIGHT_CAMERA_SERIAL in oak_serials:
-    left_oak_serial = LEFT_CAMERA_SERIAL
-    right_oak_serial = RIGHT_CAMERA_SERIAL
-else:
-    print(
-        "[WARN] Configured camera serials not both available in normal mode; "
-        "falling back to discovered order."
-    )
-    left_oak_serial = oak_serials[0]
-    right_oak_serial = oak_serials[1]
+left_oak_serial, right_oak_serial = resolve_side_camera_serials(
+    oak_serials,
+    fallback_left_serial=LEFT_CAMERA_SERIAL,
+    fallback_right_serial=RIGHT_CAMERA_SERIAL,
+)
 print(f"[INFO] Normal camera mapping: left={left_oak_serial}, right={right_oak_serial}")
 
 
@@ -862,6 +829,11 @@ usb_center_detect.start()
 
 class ROIUpdate(BaseModel):
     roi: Optional[List[float]]
+
+
+class CameraMappingUpdate(BaseModel):
+    left_serial: str
+    right_serial: str
 
 
 # ============================================
@@ -988,7 +960,7 @@ def roi_update(config: ROIUpdate) -> Dict[str, object]:
     usb_center_detect.set_roi(roi_tuple)
     CENTER_CAMERA_ROI_REL = roi_tuple
     CURRENT_CENTER_CAMERA_ROI_REL = usb_center_detect.get_roi()
-    _persist_roi(CURRENT_CENTER_CAMERA_ROI_REL)
+    persist_center_roi(CURRENT_CENTER_CAMERA_ROI_REL)
     return {
         "roi": list(CURRENT_CENTER_CAMERA_ROI_REL) if CURRENT_CENTER_CAMERA_ROI_REL else None,
         "image_size": [YOLO_MODEL_INPUT_SIZE, YOLO_MODEL_INPUT_SIZE],
@@ -1001,10 +973,55 @@ def roi_reset() -> Dict[str, object]:
     usb_center_detect.set_roi(None)
     CENTER_CAMERA_ROI_REL = None
     CURRENT_CENTER_CAMERA_ROI_REL = None
-    _persist_roi(None)
+    persist_center_roi(None)
     return {
         "roi": None,
         "image_size": [YOLO_MODEL_INPUT_SIZE, YOLO_MODEL_INPUT_SIZE],
+    }
+
+
+@app.get("/camera/config")
+def camera_config() -> Dict[str, object]:
+    saved_left_serial, saved_right_serial = get_persisted_side_camera_mapping()
+    active_mapping = {
+        "left": left_oak_serial,
+        "right": right_oak_serial,
+    }
+    saved_mapping = {
+        "left": saved_left_serial or left_oak_serial,
+        "right": saved_right_serial or right_oak_serial,
+    }
+    return {
+        "available_serials": oak_serials,
+        "active_mapping": active_mapping,
+        "saved_mapping": saved_mapping,
+        "restart_required": active_mapping != saved_mapping,
+    }
+
+
+@app.post("/camera/config")
+def camera_update(config: CameraMappingUpdate) -> Dict[str, object]:
+    left_serial = config.left_serial.strip()
+    right_serial = config.right_serial.strip()
+    if not left_serial or not right_serial:
+        raise HTTPException(status_code=400, detail="Bitte beide Kameras zuordnen.")
+    if left_serial == right_serial:
+        raise HTTPException(status_code=400, detail="Links und rechts müssen unterschiedliche Kameras sein.")
+    if left_serial not in oak_serials or right_serial not in oak_serials:
+        raise HTTPException(status_code=400, detail="Die ausgewählten Kameras sind aktuell nicht verfügbar.")
+
+    persist_side_camera_mapping(left_serial, right_serial)
+    return {
+        "available_serials": oak_serials,
+        "active_mapping": {
+            "left": left_oak_serial,
+            "right": right_oak_serial,
+        },
+        "saved_mapping": {
+            "left": left_serial,
+            "right": right_serial,
+        },
+        "restart_required": left_serial != left_oak_serial or right_serial != right_oak_serial,
     }
 
 
