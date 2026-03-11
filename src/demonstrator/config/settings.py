@@ -30,16 +30,17 @@ OAK_LUMA_DENOISE: Optional[int] = 2
 OAK_CHROMA_DENOISE: Optional[int] = 2
 OAK_SHARPNESS: Optional[int] = 1
 
-# Convert the Path objects to strings to match your existing type hints and downstream code
-YOLO_ENGINE_LEFT: str = str(MODELS_DIR / "best_nubsDetection_42kl_320_FP16_detect.engine")
-YOLO_ENGINE_RIGHT: str = str(MODELS_DIR / "best_nubsDetection_42kl_320_FP16_detect.engine")
+YOLO_EXPORT_IMGSZ: int = 320
+YOLO_EXPORT_PRECISION: str = "FP16"
+
+YOLO_SOURCE_LEFT: Path = MODELS_DIR / "251105_nubs_Y12m_detect_2cls.pt"
+YOLO_SOURCE_RIGHT: Path = YOLO_SOURCE_LEFT
+YOLO_SOURCE_CENTER: Path = MODELS_DIR / "251104_real_Y12m_detect_29cls.pt"
 
 USB_DEVICE_INDEX: int = 0
 USB_CAPTURE_WIDTH: int = 640
 USB_CAPTURE_HEIGHT: int = 480
 USB_CAPTURE_FPS: int = 20
-
-YOLO_ENGINE_CENTER: str = str(MODELS_DIR / "best_demonstrator_42_kl_320_FP16_detect.engine")
 
 YOLO_MODEL_INPUT_SIZE: int = 320
 YOLO_CONF_THRESH: float = 0.4
@@ -161,6 +162,47 @@ def normalise_roi_tuple(value: Optional[Iterable[float]]) -> Optional[Tuple[floa
     if x2 <= x1 or y2 <= y1:
         return None
     return (x1, y1, x2, y2)
+
+
+def build_exported_model_path(
+    source_model: Path,
+    export_format: str = "engine",
+    imgsz: int = YOLO_EXPORT_IMGSZ,
+    precision: str = YOLO_EXPORT_PRECISION,
+) -> Path:
+    stem = source_model.stem
+    export_format = export_format.lower()
+    if export_format == "engine":
+        return source_model.with_name(f"{stem}_{imgsz}_{precision.upper()}.engine")
+    if export_format == "onnx":
+        return source_model.with_name(f"{stem}_{imgsz}.onnx")
+    raise ValueError(f"Unsupported export format: {export_format}")
+
+
+YOLO_ENGINE_LEFT: str = str(build_exported_model_path(YOLO_SOURCE_LEFT, "engine"))
+YOLO_ENGINE_RIGHT: str = str(build_exported_model_path(YOLO_SOURCE_RIGHT, "engine"))
+YOLO_ENGINE_CENTER: str = str(build_exported_model_path(YOLO_SOURCE_CENTER, "engine"))
+
+
+def resolve_runtime_engine_path(
+    preferred_engine: Path,
+    source_model: Path,
+    role_label: str,
+) -> Path:
+    if preferred_engine.exists():
+        return preferred_engine
+
+    if source_model.exists():
+        raise RuntimeError(
+            f"Missing {role_label} engine '{preferred_engine.name}'. "
+            f"Source model '{source_model.name}' exists, but it still needs conversion. "
+            f"Run 'bash tools/convert_models.sh' or use the 'System180 Convert Models' desktop icon first."
+        )
+
+    raise RuntimeError(
+        f"Missing {role_label} engine '{preferred_engine.name}' and source model '{source_model.name}'. "
+        f"Place the source model in {source_model.parent} and run 'bash tools/convert_models.sh'."
+    )
 
 
 def load_runtime_config() -> Dict[str, Any]:

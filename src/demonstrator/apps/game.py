@@ -17,6 +17,7 @@ import random
 import threading
 import time
 from collections import deque
+from pathlib import Path
 from typing import Deque, Dict, List, Optional, Tuple
 
 import cv2
@@ -71,9 +72,13 @@ from demonstrator.config.settings import (
     YOLO_IOU_THRESH,
     YOLO_MAX_DET,
     YOLO_MODEL_INPUT_SIZE,
+    YOLO_SOURCE_CENTER,
+    YOLO_SOURCE_LEFT,
+    YOLO_SOURCE_RIGHT,
     get_persisted_center_roi,
     normalise_roi_tuple,
     persist_center_roi,
+    resolve_runtime_engine_path,
     resolve_side_camera_serials,
 )
 
@@ -2086,6 +2091,28 @@ left_oak_serial, right_oak_serial = resolve_side_camera_serials(
 )
 print(f"[INFO] Game camera mapping: left={left_oak_serial}, right={right_oak_serial}")
 
+left_engine_path = str(
+    resolve_runtime_engine_path(
+        Path(YOLO_ENGINE_LEFT),
+        YOLO_SOURCE_LEFT,
+        role_label="left side camera",
+    )
+)
+right_engine_path = str(
+    resolve_runtime_engine_path(
+        Path(YOLO_ENGINE_RIGHT),
+        YOLO_SOURCE_RIGHT,
+        role_label="right side camera",
+    )
+)
+center_engine_path = str(
+    resolve_runtime_engine_path(
+        Path(YOLO_ENGINE_CENTER),
+        YOLO_SOURCE_CENTER,
+        role_label="center camera",
+    )
+)
+
 oak_left_raw = OAK1MaxCamera(
     device_id=left_oak_serial,
     width=OAK_FRAME_WIDTH,
@@ -2102,7 +2129,7 @@ oak_left_raw = OAK1MaxCamera(
 )
 oak_left_seg = SegmentCamera(
     base_cam=oak_left_raw,
-    engine_path=YOLO_ENGINE_LEFT,
+    engine_path=left_engine_path,
     model_input_size=YOLO_MODEL_INPUT_SIZE,
     conf_thresh=YOLO_CONF_THRESH,
     iou_thresh=YOLO_IOU_THRESH,
@@ -2129,7 +2156,7 @@ oak_right_raw = OAK1MaxCamera(
 )
 oak_right_seg = SegmentCamera(
     base_cam=oak_right_raw,
-    engine_path=YOLO_ENGINE_RIGHT,
+    engine_path=right_engine_path,
     model_input_size=YOLO_MODEL_INPUT_SIZE,
     conf_thresh=YOLO_CONF_THRESH,
     iou_thresh=YOLO_IOU_THRESH,
@@ -2148,7 +2175,7 @@ usb_center_raw = USBWebcamCamera(
 )
 usb_center_game = GameDetectCamera(
     base_cam=usb_center_raw,
-    engine_path=YOLO_ENGINE_CENTER,
+    engine_path=center_engine_path,
     game_manager=game_manager,
     model_input_size=YOLO_MODEL_INPUT_SIZE,
     conf_thresh=YOLO_CONF_THRESH,

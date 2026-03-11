@@ -52,11 +52,15 @@ from demonstrator.config.settings import (
     YOLO_IOU_THRESH,
     YOLO_MAX_DET,
     YOLO_MODEL_INPUT_SIZE,
+    YOLO_SOURCE_CENTER,
+    YOLO_SOURCE_LEFT,
+    YOLO_SOURCE_RIGHT,
     get_persisted_center_roi,
     get_persisted_side_camera_mapping,
     normalise_roi_tuple,
     persist_center_roi,
     persist_side_camera_mapping,
+    resolve_runtime_engine_path,
     resolve_side_camera_serials,
 )
 # ============================================
@@ -782,6 +786,28 @@ left_oak_serial, right_oak_serial = resolve_side_camera_serials(
 )
 print(f"[INFO] Normal camera mapping: left={left_oak_serial}, right={right_oak_serial}")
 
+left_engine_path = str(
+    resolve_runtime_engine_path(
+        Path(YOLO_ENGINE_LEFT),
+        YOLO_SOURCE_LEFT,
+        role_label="left side camera",
+    )
+)
+right_engine_path = str(
+    resolve_runtime_engine_path(
+        Path(YOLO_ENGINE_RIGHT),
+        YOLO_SOURCE_RIGHT,
+        role_label="right side camera",
+    )
+)
+center_engine_path = str(
+    resolve_runtime_engine_path(
+        Path(YOLO_ENGINE_CENTER),
+        YOLO_SOURCE_CENTER,
+        role_label="center camera",
+    )
+)
+
 
 # ============================================
 # Instanziiere alle Kameras & starte Threads
@@ -802,7 +828,7 @@ oak_left_raw   = OAK1MaxCamera(
 )
 oak_left_seg   = SegmentCamera(
     base_cam=oak_left_raw,
-    engine_path=YOLO_ENGINE_LEFT,
+    engine_path=left_engine_path,
     model_input_size=YOLO_MODEL_INPUT_SIZE,
     conf_thresh=YOLO_CONF_THRESH,
     iou_thresh=YOLO_IOU_THRESH,
@@ -829,7 +855,7 @@ oak_right_raw  = OAK1MaxCamera(
 )
 oak_right_seg  = SegmentCamera(
     base_cam=oak_right_raw,
-    engine_path=YOLO_ENGINE_RIGHT,
+    engine_path=right_engine_path,
     model_input_size=YOLO_MODEL_INPUT_SIZE,
     conf_thresh=YOLO_CONF_THRESH,
     iou_thresh=YOLO_IOU_THRESH,
@@ -843,7 +869,7 @@ oak_right_seg  = SegmentCamera(
 usb_center_raw    = USBWebcamCamera(device_index=USB_DEVICE_INDEX, width=USB_CAPTURE_WIDTH, height=USB_CAPTURE_HEIGHT, fps=USB_CAPTURE_FPS)
 usb_center_detect = DetectCamera(
     base_cam=usb_center_raw,
-    engine_path=YOLO_ENGINE_CENTER,
+    engine_path=center_engine_path,
     model_input_size=YOLO_MODEL_INPUT_SIZE,
     conf_thresh=YOLO_CONF_THRESH,
     iou_thresh=YOLO_IOU_THRESH,
