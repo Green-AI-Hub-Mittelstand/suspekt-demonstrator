@@ -498,21 +498,24 @@ def _build_label_image(
         bold_font = ImageFont.load_default()
         text_font = ImageFont.load_default()
 
-    qr_size = 210
+    safe_top = 18
+    safe_bottom = 30
+    qr_size = 196
     qr_resized = qr_image.resize((qr_size, qr_size))
     qr_x = 24
-    qr_y = (label_height_px - qr_size) // 2
+    qr_y = safe_top + 18
     label.paste(qr_resized, (qr_x, qr_y))
 
     logo_path = Path(__file__).resolve().parents[3] / "static" / "system-180-logo.jpg"
     if logo_path.exists():
         try:
             logo = Image.open(logo_path).convert("RGB")
-            target_width = 210
-            target_height = 56
+            target_width = 150
+            target_height = 42
             logo.thumbnail((target_width, target_height))
-            logo_x = (label_width_px - logo.width) // 2
-            logo_y = 22
+            right_margin = 26
+            logo_x = label_width_px - right_margin - logo.width
+            logo_y = qr_y
             label.paste(logo, (logo_x, logo_y))
         except OSError:
             pass
@@ -525,28 +528,40 @@ def _build_label_image(
         f"Zustand: {zustand or 'Gut'}",
     ]
     line_fonts = [bold_font, text_font, text_font, text_font]
-    line_gap = 14
+    line_gap = 10
     text_heights = []
     for line, font in zip(info_lines, line_fonts):
         bbox = draw.textbbox((0, 0), line, font=font)
         text_heights.append(bbox[3] - bbox[1])
     total_text_height = sum(text_heights) + line_gap * (len(info_lines) - 1)
-    text_y = (label_height_px - total_text_height) // 2
+    available_height = label_height_px - safe_top - safe_bottom
+    text_y = safe_top + max(32, (available_height - total_text_height) // 2) - 28
 
     for index, (line, font) in enumerate(zip(info_lines, line_fonts)):
         draw.text((text_x, text_y), line, fill="black", font=font)
         text_y += text_heights[index] + line_gap
 
-    draw.rectangle((12, 12, label_width_px - 13, label_height_px - 13), outline="black", width=2)
     return label
 
 
-def _prepare_label_for_niimprint(label_image: Image.Image, max_width_px: int = 384) -> Image.Image:
-    if label_image.width <= max_width_px:
-        return label_image
-    scale = max_width_px / float(label_image.width)
-    resized_height = max(1, int(round(label_image.height * scale)))
-    return label_image.resize((max_width_px, resized_height), Image.Resampling.LANCZOS)
+def _prepare_label_for_niimprint(
+    label_image: Image.Image,
+    max_width_px: int = 384,
+    bottom_padding_px: int = 16,
+) -> Image.Image:
+    printable_image = label_image
+    if printable_image.width > max_width_px:
+        scale = max_width_px / float(printable_image.width)
+        resized_height = max(1, int(round(printable_image.height * scale)))
+        printable_image = printable_image.resize((max_width_px, resized_height), Image.Resampling.LANCZOS)
+
+    canvas = Image.new(
+        "RGB",
+        (printable_image.width, printable_image.height + max(0, bottom_padding_px)),
+        "white",
+    )
+    canvas.paste(printable_image, (0, 0))
+    return canvas
 
 
 def _print_label_via_usb(detection: Dict[str, Optional[float]], zustand: str) -> None:

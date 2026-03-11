@@ -4,7 +4,7 @@
 
 <br />
 <div align="center">
-  <h1 align="center">Project Title</h1>
+  <h1 align="center">SUSPEKT Demonstrator</h1>
   
   <p align="center">
     <a href="https://github.com/Green-AI-Hub-Mittelstand/readme_template/issues">Report Bug</a>
@@ -16,7 +16,7 @@
 
   <p align="center">
     <a href="https://www.green-ai-hub.de">
-    <img src="images/green-ai-hub-keyvisual.svg" alt="Logo" width="80%">
+    <img src="docs/images/green-ai-hub-keyvisual.svg" alt="Logo" width="80%">
   </a>
     <br />
     <h3 align="center"><strong>Green-AI Hub Mittelstand</strong></h3>
@@ -32,64 +32,49 @@
 
 ## About The Project
 
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+The SUSPEKT Demonstrator is a three-camera inspection and labeling setup for System180 components.
+It combines one center USB webcam and two side-mounted OAK-1 Max cameras to detect components,
+measure them, and show live camera views in a browser-based user interface. The normal demonstrator
+mode supports component capture, label preview, direct printing to a connected Niimbot label printer,
+ROI calibration for the center camera, and persistent left/right assignment of the side cameras.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Table of Contents
-<details>
-  <summary><img src="images/table_of_contents.jpg" alt="Logo" width="2%"></summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-    </li>
-    <li><a href="#table-of-contents">Table of Contents</a></li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-  </ol>
-</details>
-
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 ## Getting Started
 
-Clone this repository, navigate with your terminal into this repository and execute the following steps.
-
-### Prerequisites
-
-This is an example of how to list things you need to use the software and how to install them.
-  ```sh
-  pip install -r requirements.txt
-  ```
+Clone this repository and navigate into it with your terminal.
 
 ### Installation
 
-To use the environment, you have to install this repository as a pip package. Alternativly you can open a branch of this repository and implement changes directly in this repo.
+Install the project into your user environment:
 
-1. Navigate to the repository with your terminal.
-2. Install the repository as a pip package
-   ```sh
-   pip install .
-   ```
-3. Check whether the installation was successful
+```sh
+python3 -m pip install -e . --user
+```
+
+### Update
+
+To update the local installation, pull the latest changes and install again:
+
+```sh
+git pull
+python3 -m pip install -e . --user
+```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 ## Usage
 
-More information about the project, repository structure, features, screenshots
+Open the demonstrator UI in your browser after starting the application locally. Use the live center
+camera view to capture a component, select the detected result in the dropdown, review the generated
+label preview, and print it if a Niimbot printer is connected. The settings area in the top-right
+corner provides access to ROI calibration and persistent side-camera assignment.
 
 
 ## Contributing
@@ -129,8 +114,7 @@ Project Link: https://github.com/Green-AI-Hub-Mittelstand/repository_name
 
 <p align="left">
     <a href="https://www.green-ai-hub.de">
-    <img src="images/green-ai-hub-mittelstand.svg" alt="Logo" width="45%">
+    <img src="docs/images/green-ai-hub-mittelstand.svg" alt="Logo" width="45%">
   </a>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
