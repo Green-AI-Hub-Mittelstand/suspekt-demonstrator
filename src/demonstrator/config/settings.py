@@ -7,8 +7,11 @@ from typing import Dict, Iterable, List, Optional, Tuple
 # ============================================================
 # PATHS
 # ============================================================
-CONFIG_DIR: Path = Path("config")
+PROJECT_ROOT: Path = Path(__file__).resolve().parents[3]
+
+CONFIG_DIR: Path = PROJECT_ROOT / "config"
 ROI_CONFIG_PATH: Path = CONFIG_DIR / "center_roi.json"
+MODELS_DIR: Path = PROJECT_ROOT / "models"
 
 
 # ============================================================
@@ -17,27 +20,23 @@ ROI_CONFIG_PATH: Path = CONFIG_DIR / "center_roi.json"
 OAK_FRAME_WIDTH: int = 640
 OAK_FRAME_HEIGHT: int = 480
 OAK_FPS: int = 20
-# OAK image-quality tuning (helps with flicker/striping on LED-lit ribbed backgrounds)
-# anti banding: "off" | "50hz" | "60hz" | "auto"
 OAK_ANTI_BANDING: str = "50hz"
-# Manual exposure control for side OAK cameras. If either is None, auto exposure stays enabled.
 OAK_MANUAL_EXPOSURE_US: Optional[int] = None
 OAK_MANUAL_ISO: Optional[int] = None
-# Optional image processing controls. Set to None to keep camera defaults.
 OAK_LUMA_DENOISE: Optional[int] = 2
 OAK_CHROMA_DENOISE: Optional[int] = 2
 OAK_SHARPNESS: Optional[int] = 1
-#YOLO_ENGINE_LEFT: str = "./models/NubsUpDown_320_FP16_segment.engine"
-#YOLO_ENGINE_RIGHT: str = "./models/NubsUpDown_320_FP16_segment.engine"
-YOLO_ENGINE_LEFT: str = "./models/best_nubsDetection_42kl_320_FP16_detect.engine"
-YOLO_ENGINE_RIGHT: str = "./models/best_nubsDetection_42kl_320_FP16_detect.engine"
+
+# Convert the Path objects to strings to match your existing type hints and downstream code
+YOLO_ENGINE_LEFT: str = str(MODELS_DIR / "best_nubsDetection_42kl_320_FP16_detect.engine")
+YOLO_ENGINE_RIGHT: str = str(MODELS_DIR / "best_nubsDetection_42kl_320_FP16_detect.engine")
 
 USB_DEVICE_INDEX: int = 0
 USB_CAPTURE_WIDTH: int = 640
 USB_CAPTURE_HEIGHT: int = 480
 USB_CAPTURE_FPS: int = 20
-#YOLO_ENGINE_CENTER: str = "./models/custom_320_FP16_detect.engine"
-YOLO_ENGINE_CENTER: str = "./models/best_demonstrator_42_kl_320_FP16_detect.engine"
+
+YOLO_ENGINE_CENTER: str = str(MODELS_DIR / "best_demonstrator_42_kl_320_FP16_detect.engine")
 
 YOLO_MODEL_INPUT_SIZE: int = 320
 YOLO_CONF_THRESH: float = 0.4
