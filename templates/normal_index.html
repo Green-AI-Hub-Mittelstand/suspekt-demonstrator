@@ -130,47 +130,41 @@
         }
         .capture-panel {
             margin-top: 22px;
-            padding: 24px;
+            padding: 18px 20px 20px;
         }
         .capture-header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            gap: 24px;
-            margin-bottom: 20px;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
             flex-wrap: wrap;
         }
-        .capture-title h2 {
-            font-size: 1.6rem;
-            margin-bottom: 6px;
-        }
-        .capture-title p {
-            color: var(--muted);
-            max-width: 720px;
-            line-height: 1.5;
+        .capture-title {
+            display: none;
         }
         .capture-status {
-            min-height: 24px;
-            margin-bottom: 18px;
+            min-height: 20px;
             color: var(--muted);
-            font-size: 0.98rem;
+            font-size: 0.92rem;
         }
         .capture-controls {
-            display: flex;
-            gap: 14px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
             align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .control-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: min(320px, 100%);
+            justify-self: center;
         }
         .dropdown-wrap {
             display: flex;
-            flex-direction: column;
-            gap: 6px;
-            min-width: 320px;
-        }
-        .dropdown-wrap label {
-            font-size: 0.92rem;
-            color: var(--muted);
+            width: 100%;
         }
         .dropdown-wrap select {
             min-height: 46px;
@@ -180,50 +174,20 @@
             padding: 0 14px;
             font-size: 1rem;
             color: var(--text);
+            width: 100%;
         }
         .capture-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-            gap: 18px;
-            align-items: start;
+            display: block;
         }
-        .details-card,
         .preview-card {
-            padding: 18px;
+            padding: 14px;
             border: 1px solid rgba(11, 125, 218, 0.08);
+            max-width: 620px;
+            width: min(620px, 100%);
+            justify-self: center;
         }
         .card-title {
-            font-size: 1.05rem;
-            margin-bottom: 14px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        thead th {
-            text-align: left;
-            font-size: 0.9rem;
-            color: var(--muted);
-            background: var(--soft);
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--line);
-        }
-        tbody td {
-            padding: 14px;
-            border-bottom: 1px solid #edf1f4;
-            vertical-align: middle;
-        }
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-        .qr-thumb {
-            width: 88px;
-            height: 88px;
-            object-fit: contain;
-            border-radius: 8px;
-            border: 1px solid var(--line);
-            background: #fff;
-            padding: 4px;
+            display: none;
         }
         .label-preview {
             width: 100%;
@@ -232,40 +196,26 @@
             background: #fff;
             border: 1px solid var(--line);
             border-radius: 12px;
-            padding: 10px;
-        }
-        .preview-meta {
-            margin-top: 12px;
-            display: grid;
-            gap: 8px;
-            color: var(--muted);
-            font-size: 0.95rem;
-        }
-        .payload-box {
-            margin-top: 12px;
-            padding: 12px;
-            border-radius: 10px;
-            background: #f6f8fa;
-            border: 1px solid var(--line);
-            color: var(--text);
-            font-size: 0.9rem;
-            line-height: 1.4;
-            word-break: break-word;
+            padding: 8px;
         }
         .empty-state {
-            padding: 28px;
+            padding: 18px;
             border-radius: 14px;
             background: #f8fafc;
             border: 1px dashed #c8d4df;
             color: var(--muted);
             text-align: center;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         @media (max-width: 1200px) {
             .container {
                 grid-template-columns: 1fr 1.45fr 1fr;
             }
             .capture-grid {
-                grid-template-columns: 1fr;
+                display: block;
             }
         }
         @media (max-width: 900px) {
@@ -275,8 +225,21 @@
             .camera-media {
                 height: 360px;
             }
-            .dropdown-wrap {
-                min-width: 100%;
+            .capture-header,
+            .capture-controls {
+                align-items: stretch;
+            }
+            .capture-controls {
+                grid-template-columns: 1fr;
+            }
+            .capture-button,
+            .dropdown-wrap,
+            .preview-card,
+            .control-stack {
+                width: 100%;
+            }
+            .preview-card {
+                max-width: none;
             }
         }
     </style>
@@ -319,39 +282,31 @@
 
         <section class="capture-panel">
             <div class="capture-header">
-                <div class="capture-title">
-                    <h2>Komponente erfassen</h2>
-                    <p>
-                        Nach dem Klick auf <strong>Erfassen</strong> werden die aktuell erkannten Komponenten unter der mittleren Kamera geladen.
-                        Bei mehreren Treffern kann die gewünschte Komponente über das Auswahlfeld gewählt werden.
-                    </p>
+                <div id="capture-status" class="capture-status">Bereit.</div>
+                <div class="header-actions">
+                    <button id="capture-button" class="capture-button" type="button">Erfassen</button>
+                    <button id="print-button" class="capture-button" type="button">Drucken</button>
                 </div>
-                <button id="capture-button" class="capture-button" type="button">Erfassen</button>
             </div>
-
-            <div id="capture-status" class="capture-status">Noch keine Erfassung gestartet.</div>
 
             <div class="capture-controls">
-                <div class="dropdown-wrap">
-                    <label for="component-select">Erkannte Komponente auswählen</label>
-                    <select id="component-select" disabled>
-                        <option>Bitte zuerst erfassen</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="capture-grid">
-                <div class="details-card">
-                    <h3 class="card-title">Erfasste Komponente</h3>
-                    <div id="details-content" class="empty-state">
-                        Noch keine Komponenten erfasst.
+                <div class="control-stack">
+                    <div class="dropdown-wrap">
+                        <select id="component-select" aria-label="Komponente auswählen" title="Komponente auswählen" disabled>
+                            <option>Bitte zuerst erfassen</option>
+                        </select>
+                    </div>
+                    <div class="dropdown-wrap">
+                        <select id="condition-select" aria-label="Zustand auswählen" title="Zustand auswählen">
+                            <option value="Gut" selected>Gut</option>
+                            <option value="Beschädigt">Beschädigt</option>
+                            <option value="Gebraucht">Gebraucht</option>
+                        </select>
                     </div>
                 </div>
-
                 <div class="preview-card">
-                    <h3 class="card-title">Etikett-Vorschau 50 x 30 mm</h3>
                     <div id="preview-content" class="empty-state">
-                        Nach der Erfassung erscheint hier die QR-Code- und Etikett-Vorschau.
+                        Keine Etikett-Vorschau.
                     </div>
                 </div>
             </div>
@@ -360,9 +315,10 @@
 
     <script>
         const captureButton = document.getElementById("capture-button");
+        const printButton = document.getElementById("print-button");
         const componentSelect = document.getElementById("component-select");
+        const conditionSelect = document.getElementById("condition-select");
         const captureStatus = document.getElementById("capture-status");
-        const detailsContent = document.getElementById("details-content");
         const previewContent = document.getElementById("preview-content");
 
         let components = [];
@@ -381,50 +337,41 @@
         }
 
         function renderEmptyState(message) {
-            detailsContent.innerHTML = `<div class="empty-state">${escapeHtml(message)}</div>`;
-            previewContent.innerHTML = '<div class="empty-state">Nach der Erfassung erscheint hier die QR-Code- und Etikett-Vorschau.</div>';
+            previewContent.innerHTML = '<div class="empty-state">Keine Etikett-Vorschau.</div>';
         }
 
-        function renderComponent(index) {
+        async function renderComponent(index) {
             const component = components[index];
             if (!component) {
-                renderEmptyState("Keine Komponente ausgewaehlt.");
+                renderEmptyState("Keine Komponente ausgewählt.");
                 return;
             }
 
-            detailsContent.innerHTML = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Komponente</th>
-                            <th>Laenge</th>
-                            <th>QR-Code</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>${escapeHtml(component.name)}</td>
-                            <td>${escapeHtml(formatMillimeter(component.length_mm))}</td>
-                            <td><img class="qr-thumb" src="${component.qr_code_data_url}" alt="QR-Code fuer ${escapeHtml(component.name)}"></td>
-                        </tr>
-                    </tbody>
-                </table>
-            `;
+            previewContent.innerHTML = '<div class="empty-state">Etikett wird geladen...</div>';
 
-            previewContent.innerHTML = `
-                <img class="label-preview" src="${component.etikett_data_url}" alt="Etikett-Vorschau fuer ${escapeHtml(component.name)}">
-                <div class="preview-meta">
-                    <div><strong>Komponente:</strong> ${escapeHtml(component.name)}</div>
-                    <div><strong>Laenge:</strong> ${escapeHtml(formatMillimeter(component.length_mm))}</div>
-                    <div><strong>Groesse:</strong> 50 x 30 mm</div>
-                </div>
-                <div class="payload-box"><strong>QR-Inhalt:</strong><br>${escapeHtml(component.qr_payload)}</div>
-            `;
+            try {
+                const params = new URLSearchParams({
+                    name: component.name,
+                    length_mm: String(component.length_mm ?? ""),
+                    width_mm: String(component.width_mm ?? ""),
+                    zustand: conditionSelect.value,
+                });
+                const response = await fetch(`/api/etikett-vorschau?${params.toString()}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                previewContent.innerHTML = `
+                    <img class="label-preview" src="${data.etikett_data_url}" alt="Etikett-Vorschau für ${escapeHtml(component.name)}">
+                `;
+            } catch (error) {
+                renderEmptyState("Die Etikett-Vorschau konnte nicht geladen werden.");
+            }
         }
 
         async function erfassen() {
             captureButton.disabled = true;
-            captureStatus.textContent = "Erfassung laeuft...";
+            captureStatus.textContent = "Erfassung läuft...";
 
             try {
                 const response = await fetch("/api/erfassung");
@@ -438,7 +385,7 @@
                 if (!components.length) {
                     componentSelect.disabled = true;
                     componentSelect.innerHTML = "<option>Keine Komponente erkannt</option>";
-                    captureStatus.textContent = "Es wurde aktuell keine Komponente erkannt.";
+                    captureStatus.textContent = "Keine Komponente erkannt.";
                     renderEmptyState("Es wurde aktuell keine Komponente erkannt.");
                     return;
                 }
@@ -450,13 +397,13 @@
                     return `<option value="${index}">${name} - ${length}</option>`;
                 }).join("");
 
-                captureStatus.textContent = `${components.length} Komponente${components.length === 1 ? "" : "n"} erkannt. Auswahl aktualisiert.`;
+                captureStatus.textContent = `${components.length} Komponente${components.length === 1 ? "" : "n"} erkannt.`;
                 componentSelect.value = "0";
                 renderComponent(0);
             } catch (error) {
                 componentSelect.disabled = true;
                 componentSelect.innerHTML = "<option>Fehler bei der Erfassung</option>";
-                captureStatus.textContent = "Die Erfassung konnte nicht geladen werden.";
+                captureStatus.textContent = "Erfassung fehlgeschlagen.";
                 renderEmptyState("Die Erfassung konnte nicht geladen werden.");
             } finally {
                 captureButton.disabled = false;
@@ -465,6 +412,16 @@
 
         componentSelect.addEventListener("change", (event) => {
             renderComponent(Number(event.target.value));
+        });
+
+        conditionSelect.addEventListener("change", () => {
+            if (components.length) {
+                renderComponent(Number(componentSelect.value));
+            }
+        });
+
+        printButton.addEventListener("click", () => {
+            captureStatus.textContent = `Drucken folgt. Zustand: ${conditionSelect.value}.`;
         });
 
         captureButton.addEventListener("click", erfassen);

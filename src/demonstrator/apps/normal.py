@@ -6,6 +6,7 @@ import json
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import cv2
@@ -442,7 +443,11 @@ class DetectCamera(FrameGrabber):
             if ratio is not None:
                 width_mm, height_mm = calculate_dimensions([x1, y1, x2, y2], ratio)
                 if width_mm is not None and height_mm is not None:
-                    length_mm = max(width_mm, height_mm)
+                    shorter_side_mm = min(width_mm, height_mm)
+                    longer_side_mm = max(width_mm, height_mm)
+                    width_mm = shorter_side_mm
+                    height_mm = longer_side_mm
+                    length_mm = longer_side_mm
 
             detections.append(
                 {
@@ -472,13 +477,14 @@ def _image_to_data_url(image: Image.Image) -> str:
     return f"data:image/png;base64,{encoded}"
 
 
-def _build_qr_payload(detection: Dict[str, Optional[float]]) -> str:
+def _build_qr_payload(detection: Dict[str, Optional[float]], zustand: Optional[str] = None) -> str:
     payload = {
         "typ": "komponente",
         "name": detection["name"],
         "laenge_mm": detection["length_mm"],
         "breite_mm": detection["width_mm"],
         "hoehe_mm": detection["height_mm"],
+        "zustand": zustand,
         "erfasst_am": datetime.now().isoformat(timespec="seconds"),
     }
     return json.dumps(payload, ensure_ascii=False)
@@ -496,33 +502,63 @@ def _build_qr_image(payload: str) -> Image.Image:
     return qr.make_image(fill_color="black", back_color="white").convert("RGB")
 
 
-def _build_label_image(detection: Dict[str, Optional[float]], qr_image: Image.Image) -> Image.Image:
-    # Vorschau fuer ein 50x30 mm Etikett bei 300 dpi.
+def _build_label_image(
+    detection: Dict[str, Optional[float]],
+    qr_image: Image.Image,
+    zustand: Optional[str] = None,
+) -> Image.Image:
+    # Vorschau für ein 50x30 mm Etikett bei 300 dpi.
     label_width_px = 591
     label_height_px = 354
     label = Image.new("RGB", (label_width_px, label_height_px), "white")
     draw = ImageDraw.Draw(label)
-    font = ImageFont.load_default()
+    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    font_bold_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    try:
+        bold_font = ImageFont.truetype(font_bold_path, 22)
+        text_font = ImageFont.truetype(font_path, 22)
+    except OSError:
+        bold_font = ImageFont.load_default()
+        text_font = ImageFont.load_default()
 
-    qr_size = 220
+    qr_size = 210
     qr_resized = qr_image.resize((qr_size, qr_size))
-    qr_x = 18
+    qr_x = 24
     qr_y = (label_height_px - qr_size) // 2
     label.paste(qr_resized, (qr_x, qr_y))
 
-    text_x = qr_x + qr_size + 24
-    text_y = 36
-    line_gap = 18
-    lines = [
-        "Komponente",
-        str(detection["name"]),
-        f"Laenge: {detection['length_mm']:.1f} mm" if detection["length_mm"] is not None else "Laenge: n. v.",
+    logo_path = Path(__file__).resolve().parents[3] / "static" / "system-180-logo.jpg"
+    if logo_path.exists():
+        try:
+            logo = Image.open(logo_path).convert("RGB")
+            target_width = 210
+            target_height = 56
+            logo.thumbnail((target_width, target_height))
+            logo_x = (label_width_px - logo.width) // 2
+            logo_y = 22
+            label.paste(logo, (logo_x, logo_y))
+        except OSError:
+            pass
+
+    text_x = qr_x + qr_size + 30
+    info_lines = [
+        f"{detection['name']}",
+        f"Länge: {detection['length_mm']:.1f} mm" if detection["length_mm"] is not None else "Länge: n. v.",
         f"Breite: {detection['width_mm']:.1f} mm" if detection["width_mm"] is not None else "Breite: n. v.",
-        "Format: 50 x 30 mm",
+        f"Zustand: {zustand or 'Gut'}",
     ]
-    for line in lines:
+    line_fonts = [bold_font, text_font, text_font, text_font]
+    line_gap = 14
+    text_heights = []
+    for line, font in zip(info_lines, line_fonts):
+        bbox = draw.textbbox((0, 0), line, font=font)
+        text_heights.append(bbox[3] - bbox[1])
+    total_text_height = sum(text_heights) + line_gap * (len(info_lines) - 1)
+    text_y = (label_height_px - total_text_height) // 2
+
+    for index, (line, font) in enumerate(zip(info_lines, line_fonts)):
         draw.text((text_x, text_y), line, fill="black", font=font)
-        text_y += 32 if line in {"Komponente", str(detection["name"])} else line_gap + 12
+        text_y += text_heights[index] + line_gap
 
     draw.rectangle((12, 12, label_width_px - 13, label_height_px - 13), outline="black", width=2)
     return label
@@ -841,9 +877,9 @@ def capture_components() -> Dict[str, object]:
     detections = usb_center_detect.get_current_detections()
     enriched: List[Dict[str, object]] = []
     for detection in detections:
-        qr_payload = _build_qr_payload(detection)
+        qr_payload = _build_qr_payload(detection, zustand="Gut")
         qr_image = _build_qr_image(qr_payload)
-        label_image = _build_label_image(detection, qr_image)
+        label_image = _build_label_image(detection, qr_image, zustand="Gut")
         enriched.append(
             {
                 **detection,
@@ -857,6 +893,27 @@ def capture_components() -> Dict[str, object]:
         "komponenten": enriched,
         "anzahl": len(enriched),
         "erfasst_am": datetime.now().isoformat(timespec="seconds"),
+    }
+
+
+@app.get("/api/etikett-vorschau")
+def label_preview(
+    name: str,
+    zustand: str = "Gut",
+    length_mm: Optional[float] = None,
+    width_mm: Optional[float] = None,
+) -> Dict[str, str]:
+    detection = {
+        "name": name,
+        "length_mm": length_mm,
+        "width_mm": width_mm,
+        "height_mm": None,
+    }
+    qr_payload = _build_qr_payload(detection, zustand=zustand)
+    qr_image = _build_qr_image(qr_payload)
+    label_image = _build_label_image(detection, qr_image, zustand=zustand)
+    return {
+        "etikett_data_url": _image_to_data_url(label_image),
     }
 
 
