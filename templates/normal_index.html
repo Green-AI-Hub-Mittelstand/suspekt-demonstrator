@@ -27,19 +27,23 @@
             color: var(--text);
         }
         .logo-header {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
             padding: 20px 24px;
             background-color: rgba(255, 255, 255, 0.95);
             box-shadow: 0 2px 4px rgba(0,0,0,0.08);
             gap: 24px;
         }
+        .header-spacer {
+            min-width: 0;
+        }
         .logo-group {
             display: flex;
             align-items: center;
             gap: 40px;
             flex-wrap: wrap;
+            justify-content: center;
         }
         .logo-group img {
             height: 60px;
@@ -50,6 +54,28 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            justify-self: end;
+        }
+        .settings-box {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 8px 20px rgba(14, 24, 37, 0.06);
+            min-width: 200px;
+        }
+        .settings-title {
+            font-size: 0.9rem;
+            color: var(--muted);
+            text-align: center;
+        }
+        .settings-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
         }
         .header-button,
         .capture-button {
@@ -229,6 +255,17 @@
             }
         }
         @media (max-width: 900px) {
+            .logo-header {
+                grid-template-columns: 1fr;
+                justify-items: center;
+            }
+            .header-actions {
+                justify-self: center;
+                width: 100%;
+            }
+            .settings-box {
+                width: min(320px, 100%);
+            }
             .container {
                 grid-template-columns: 1fr;
             }
@@ -256,13 +293,20 @@
 </head>
 <body>
     <div class="logo-header">
+        <div class="header-spacer" aria-hidden="true"></div>
         <div class="logo-group">
             <img src="/static/system-180-logo.jpg" alt="System 180 Logo">
             <img src="/static/green-ai-hub-mittelstand.svg" alt="Green AI Hub Logo">
             <img src="/static/dfki_Logo_vz-1024x292.png" alt="DFKI Logo">
         </div>
         <div class="header-actions">
-            <a class="header-button" href="/roi">ROI einstellen</a>
+            <div class="settings-box">
+                <div class="settings-title">Einstellungen</div>
+                <div class="settings-actions">
+                    <a class="header-button" href="/roi">ROI</a>
+                    <button class="header-button" type="button">Kamera</button>
+                </div>
+            </div>
         </div>
     </div>
 
