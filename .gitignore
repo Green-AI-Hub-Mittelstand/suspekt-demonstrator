@@ -48,6 +48,7 @@ htmlcov/
 *.sqlite3
 db.sqlite3
 config/center_roi.json
+config/config.json
 
 # Generated models and large binary artifacts
 *.engine
