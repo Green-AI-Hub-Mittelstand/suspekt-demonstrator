@@ -11,7 +11,7 @@ DEMO_ICON_PATH="$PROJECT_DIR/static/system180-desktop-icon.png"
 mkdir -p "$DESKTOP_DIR"
 
 RUN_NORMAL_CMD="cd \"$PROJECT_DIR\" && demonstrator --mode normal"
-RUN_GAME_CMD="cd \"$PROJECT_DIR\" && demonstrator --mode game"
+RUN_GAME_CMD="cd \"$PROJECT_DIR\" && bash \"$PROJECT_DIR/tools/launch_game_kiosk.sh\""
 UPDATE_CMD="cd \"$PROJECT_DIR\" && \"$PROJECT_DIR/tools/update_local_install.sh\""
 CONVERT_CMD="cd \"$PROJECT_DIR\" && bash \"$PROJECT_DIR/tools/convert_models.sh\""
 
@@ -75,6 +75,7 @@ chmod +x \
     "$PROJECT_DIR/tools/update_local_install.sh" \
     "$PROJECT_DIR/tools/install_desktop_icons.sh" \
     "$PROJECT_DIR/tools/convert_models.sh" \
+    "$PROJECT_DIR/tools/launch_game_kiosk.sh" \
     "$DESKTOP_DIR/System180 Demonstrator.desktop" \
     "$DESKTOP_DIR/System180 Game.desktop" \
     "$DESKTOP_DIR/System180 Update.desktop" \
